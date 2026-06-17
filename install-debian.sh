@@ -1,0 +1,539 @@
+#!/bin/sh
+# ==========================================
+# LIN 极简流量监控与伪面板 一键安装脚本
+# 适配系统: Debian (Interactive Edition v1.0)
+# ==========================================
+
+# ---- 颜色变量 ----
+C_CYAN='\033[1;36m'
+C_YELLOW='\033[1;33m'
+C_GREEN='\033[1;32m'
+C_WHITE='\033[1;37m'
+C_RED='\033[1;31m'
+C_RESET='\033[0m'
+
+# ---- 打印 Logo ----
+clear
+echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
+echo -e "${C_YELLOW}│          欢迎使用 LIN 极简流量面板一键安装脚本         │${C_RESET}"
+echo -e "${C_CYAN}╰──────────────────────────────────────────────────────────────╯${C_RESET}"
+echo ""
+
+# ==================== 交互式配置 ====================
+echo -e "${C_CYAN}┌──────────── 自定义配置 ────────────┐${C_RESET}"
+echo ""
+
+# 1. 流量上限自定义
+printf "请输入流量上限(GB) [默认: 350]: "
+read LIMIT
+LIMIT="${LIMIT:-350}"
+echo -e "  -> 流量上限设置为: ${C_YELLOW}${LIMIT}GB${C_RESET}"
+echo ""
+
+# 2. 计费模式
+printf "请选择计费模式\n"
+printf "  [1] 双向计费 (入站+出站) [默认]\n"
+printf "  [2] 入站计费 (仅下载)\n"
+printf "  [3] 出站计费 (仅上传)\n"
+printf "  请选择 [1/2/3] [默认: 1]: "
+read BILLING
+case "$BILLING" in
+    2) BILLING_MODE=2; echo -e "  -> 计费模式: ${C_YELLOW}入站计费 (仅下载 RX)${C_RESET}" ;;
+    3) BILLING_MODE=3; echo -e "  -> 计费模式: ${C_YELLOW}出站计费 (仅上传 TX)${C_RESET}" ;;
+    *) BILLING_MODE=1; echo -e "  -> 计费模式: ${C_YELLOW}双向计费 (入站+出站)${C_RESET}" ;;
+esac
+echo ""
+
+# 3. 重置时间自定义
+printf "请输入每月流量重置时间\n"
+printf "  日期 (1-28) [默认 1]: "
+read DAY
+DAY="${DAY:-1}"
+case "$DAY" in [1-9]|[12][0-8]) ;; *) echo -e "  ${C_RED}⚠ 日期无效，已使用默认值 1${C_RESET}"; DAY=1 ;;
+esac
+
+printf "  小时 (0-23) [默认 0]: "
+read HOUR
+HOUR="${HOUR:-0}"
+case "$HOUR" in [0-9]|1[0-9]|2[0-3]) ;; *) echo -e "  ${C_RED}⚠ 小时无效，已使用默认值 0${C_RESET}"; HOUR=0 ;;
+esac
+
+printf "  分钟 (0-59) [默认 0]: "
+read MINUTE
+MINUTE="${MINUTE:-0}"
+case "$MINUTE" in [0-9]|[1-4][0-9]|5[0-9]) ;; *) echo -e "  ${C_RED}⚠ 分钟无效，已使用默认值 0${C_RESET}"; MINUTE=0 ;;
+esac
+
+printf "  秒数 (0-59) [默认 0]: "
+read SECOND
+SECOND="${SECOND:-0}"
+case "$SECOND" in [0-9]|[1-4][0-9]|5[0-9]) ;; *) echo -e "  ${C_RED}⚠ 秒数无效，已使用默认值 0${C_RESET}"; SECOND=0 ;;
+esac
+echo -e "  -> 重置时间设置为: 每月 ${C_YELLOW}${DAY}日 ${HOUR}:${MINUTE}:${SECOND}${C_RESET}"
+echo ""
+
+# 4. 是否开启登录自启
+printf "是否在每次通过 SSH 登录服务器时，自动展示流量监控面板？[Y/n] [默认: Y]: "
+read LOGIN_AUTO
+if [ "$LOGIN_AUTO" = "N" ] || [ "$LOGIN_AUTO" = "n" ]; then
+    ENABLE_LOGIN_AUTO=0
+    echo -e "  -> 登录自启: ${C_RED}已关闭${C_RESET}"
+else
+    ENABLE_LOGIN_AUTO=1
+    echo -e "  -> 登录自启: ${C_GREEN}已开启${C_RESET}"
+fi
+echo ""
+
+# 5. 自定义快捷命令名
+printf "请输入您的快捷命令名称 [默认: lin-panel]: "
+read CMD
+CMD="${CMD:-lin-panel}"
+echo -e "  -> 快捷命令设置为: ${C_YELLOW}${CMD}${C_RESET}"
+echo ""
+echo -e "${C_CYAN}└────────────────────────────────────┘${C_RESET}"
+echo ""
+
+# ==================== 开始安装 ====================
+echo -e "${C_GREEN}[1/7] 🌐 时区配置${C_RESET}"
+
+CURRENT_TZ=$(cat /etc/timezone 2>/dev/null || date +%Z)
+printf "  当前时区: ${C_YELLOW}%s${C_RESET}\n" "$CURRENT_TZ"
+echo ""
+printf "  请选择时区:\n"
+printf "    [1] Asia/Shanghai    (UTC+8)  中国\n"
+printf "    [2] Asia/Hong_Kong   (UTC+8)  香港\n"
+printf "    [3] Asia/Tokyo       (UTC+9)  日本\n"
+printf "    [4] Asia/Singapore   (UTC+8)  新加坡\n"
+printf "    [5] America/New_York (UTC-5)  美东\n"
+printf "    [6] America/Los_Angeles (UTC-8) 美西\n"
+printf "    [7] Europe/London    (UTC+0)  英国\n"
+printf "    [8] Europe/Berlin    (UTC+1)  欧洲\n"
+printf "    [9] UTC              (UTC+0)  格林威治\n"
+printf "    [0] 不修改\n"
+printf "  请选择 [0-9] [默认: 0]: "
+read TZ_CHOICE
+case "$TZ_CHOICE" in
+    1) TZ_TARGET="Asia/Shanghai" ;;
+    2) TZ_TARGET="Asia/Hong_Kong" ;;
+    3) TZ_TARGET="Asia/Tokyo" ;;
+    4) TZ_TARGET="Asia/Singapore" ;;
+    5) TZ_TARGET="America/New_York" ;;
+    6) TZ_TARGET="America/Los_Angeles" ;;
+    7) TZ_TARGET="Europe/London" ;;
+    8) TZ_TARGET="Europe/Berlin" ;;
+    9) TZ_TARGET="UTC" ;;
+    *) TZ_TARGET="" ;;
+esac
+if [ -n "$TZ_TARGET" ]; then
+    if [ -f "/usr/share/zoneinfo/$TZ_TARGET" ]; then
+        cp "/usr/share/zoneinfo/$TZ_TARGET" /etc/localtime
+        echo "$TZ_TARGET" > /etc/timezone
+    else
+        apt-get install -y tzdata >/dev/null 2>&1
+        cp "/usr/share/zoneinfo/$TZ_TARGET" /etc/localtime
+        echo "$TZ_TARGET" > /etc/timezone
+        apt-get remove -y tzdata >/dev/null 2>&1
+    fi
+    hwclock --systohc >/dev/null 2>&1 || true
+    echo -e "  -> 时区已修改为: ${C_YELLOW}${TZ_TARGET}${C_RESET}"
+else
+    echo -e "  -> 保持当前时区: ${C_YELLOW}${CURRENT_TZ}${C_RESET}"
+fi
+
+echo -e "${C_GREEN}[2/7] 📦 正在安装必要依赖 (vnstat)...${C_RESET}"
+
+apt-get update -qq && apt-get install -y vnstat >/dev/null 2>&1
+systemctl start vnstat >/dev/null 2>&1
+systemctl enable vnstat >/dev/null 2>&1
+
+echo -e "${C_GREEN}[3/7] 🎨 正在生成高级 TUI 监控面板...${C_RESET}"
+
+cat << EOF > /root/lin-panel.sh
+#!/bin/sh
+C_CYAN='\\033[1;36m'
+C_YELLOW='\\033[1;33m'
+C_GREEN='\\033[1;32m'
+C_WHITE='\\033[1;37m'
+C_RED='\\033[1;31m'
+C_RESET='\\033[0m'
+
+LIMIT=${LIMIT}
+BILLING_MODE=${BILLING_MODE}
+RESET_DAY=${DAY}
+RESET_HOUR=${HOUR}
+RESET_MIN=${MINUTE}
+RESET_SEC=${SECOND}
+
+PCT=""
+ALERT=""
+USED_GB=0
+BILLING_LABEL="双向计费"
+
+VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+if [ -n "\$VSTAT_RAW" ]; then
+    UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
+    TRAFFIC_RAW=""
+    if [ "\$BILLING_MODE" = "2" ]; then
+        BILLING_LABEL="入站计费"
+        TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$3} END{print v}')
+    elif [ "\$BILLING_MODE" = "3" ]; then
+        BILLING_LABEL="出站计费"
+        TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$4} END{print v}')
+    else
+        BILLING_LABEL="双向计费"
+        TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]+\\.[0-9]+/{last=\\\$NF} END{print last}')
+    fi
+    if [ -n "\$TRAFFIC_RAW" ] && [ -n "\$UNIT" ]; then
+        TRAFFIC_BYTES=0
+        case "\$UNIT" in
+            *TiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1099511627776}") ;;
+            *GiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1073741824}") ;;
+            *MiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1048576}") ;;
+        esac
+        LIMIT_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$LIMIT * 1073741824}")
+        if [ "\$LIMIT_BYTES" -gt 0 ] && [ "\$TRAFFIC_BYTES" -gt 0 ]; then
+            PCT=\$(awk "BEGIN{printf \\"%.1f\\", \$TRAFFIC_BYTES * 100 / \$LIMIT_BYTES}")
+            USED_GB=\$(awk "BEGIN{printf \\"%.2f\\", \$TRAFFIC_BYTES / 1073741824}")
+            if awk "BEGIN{exit !(\$PCT >= 90)}"; then
+                ALERT="red"
+            elif awk "BEGIN{exit !(\$PCT >= 70)}"; then
+                ALERT="yellow"
+            else
+                ALERT="green"
+            fi
+        fi
+    fi
+fi
+
+NOW_S=\$(date +%s)
+CUR_M=\$(date +%-m)
+NEXT_M=\$(( (CUR_M + 1) % 12 ))
+NEXT_Y=\$(date +%Y)
+if [ "\$NEXT_M" -eq 0 ]; then NEXT_M=12; NEXT_Y=\$((NEXT_Y + 1)); fi
+MDAYS=31
+case \$NEXT_M in 2) MDAYS=28;; 4|6|9|11) MDAYS=30;; esac
+TDAY=\$RESET_DAY; [ "\$TDAY" -gt "\$MDAYS" ] && TDAY=\$MDAYS
+D2=\$(echo "\$TDAY" | sed 's/^0//')
+H2=\$(echo "\$RESET_HOUR" | sed 's/^0//')
+MI2=\$(echo "\$RESET_MIN" | sed 's/^0//')
+S2=\$(echo "\$RESET_SEC" | sed 's/^0//')
+RESET_STR=\$(printf "%04d-%02d-%02d %02d:%02d:%02d" "\$NEXT_Y" "\$NEXT_M" "\$D2" "\$H2" "\$MI2" "\$S2")
+NEXT_S=\$(date -d "\$RESET_STR" +%s 2>/dev/null)
+CDOWN=""
+if [ -n "\$NEXT_S" ] && [ "\$NEXT_S" -gt "\$NOW_S" ]; then
+    DIFF=\$((\$NEXT_S - \$NOW_S))
+    CD_D=\$((\$DIFF / 86400))
+    CD_H=\$((\$DIFF % 86400 / 3600))
+    CD_M=\$((\$DIFF % 3600 / 60))
+    CDOWN=\${CD_D}天\${CD_H}时\${CD_M}分
+fi
+
+clear
+echo -e "\${C_CYAN}╭──────────────────────────────────────────────────────────────╮\${C_RESET}"
+echo -e "\${C_YELLOW}│              📊 LIN 流量监控面板 (汉化版)              │\${C_RESET}"
+echo -e "\${C_CYAN}╰──────────────────────────────────────────────────────────────╯\${C_RESET}"
+echo ""
+echo -e "\${C_GREEN}  📈 当期流量总账 ─ \${BILLING_LABEL}上限: ${LIMIT}GB\${C_RESET}"
+if [ -n "\$PCT" ]; then
+    CLR="\${C_GREEN}"
+    [ "\$ALERT" = "yellow" ] && CLR="\${C_YELLOW}"
+    [ "\$ALERT" = "red" ] && CLR="\${C_RED}"
+    ICON="✅"; [ "\$ALERT" = "yellow" ] && ICON="⚠️"
+    [ "\$ALERT" = "red" ] && ICON="🚨"
+    echo -e "     \${CLR}\${ICON} 已用: \${USED_GB} / ${LIMIT} GB (\${PCT}%)\${C_RESET}"
+else
+    echo -e "     \${C_WHITE}📊 已用: \${USED_GB} / ${LIMIT} GB\${C_RESET}"
+fi
+if [ -n "\$CDOWN" ]; then
+    echo -e "     ⏰ 距离重置: \${C_YELLOW}\${CDOWN}\${C_RESET}"
+fi
+echo -e "\${C_CYAN}────────────────────────────────────────────────────────────────\${C_RESET}"
+echo ""
+echo -e "\${C_CYAN}  ┌──────────────────────────────────────────────────────────┐\${C_RESET}"
+VSTAT_M=\$(vnstat -m 2>/dev/null | sed \\
+    -e 's/rx/入站(RX)/g' \\
+    -e 's/tx/出站(TX)/g' \\
+    -e 's/total/合计(Total)/g' \\
+    -e 's/estimated/预计/g' \\
+    -e 's/month/月份/g' \\
+    -e 's/-/─/g' \\
+    -e 's/+/┼/g' \\
+    -e 's/|/│/g')
+printf "\${C_CYAN}"
+printf '%s\\n' "\$VSTAT_M"
+printf "\${C_RESET}"
+echo -e "\${C_CYAN}  └──────────────────────────────────────────────────────────┘\${C_RESET}"
+
+echo ""
+echo -e "\${C_GREEN}  📅 每日流量明细\${C_RESET}"
+echo -e "\${C_CYAN}  ┌──────────────────────────────────────────────────────────┐\${C_RESET}"
+VSTAT_D=\$(vnstat -d 2>/dev/null | sed \\
+    -e 's/rx/入站(RX)/g' \\
+    -e 's/tx/出站(TX)/g' \\
+    -e 's/total/合计(Total)/g' \\
+    -e 's/estimated/预计/g' \\
+    -e 's/day/日期/g' \\
+    -e 's/-/─/g' \\
+    -e 's/+/┼/g' \\
+    -e 's/|/│/g')
+printf "\${C_CYAN}"
+printf '%s\\n' "\$VSTAT_D"
+printf "\${C_RESET}"
+echo -e "\${C_CYAN}  └──────────────────────────────────────────────────────────┘\${C_RESET}"
+
+show_trend() {
+    echo ""
+    echo -e "\${C_GREEN}  📊 近 7 天流量趋势\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    TREND=\$(vnstat -d 2>/dev/null | awk '/[0-9]+\\.[0-9]+/{d=\\\$1; v=\\\$NF; if(d~/^[0-9]/) print d" "v}' | tail -7)
+    if [ -z "\$TREND" ]; then
+        echo -e "  \${C_WHITE}暂无历史数据\${C_RESET}"
+    else
+        MAX_V=\$(echo "\$TREND" | awk '{if(\\\$2+0>max)max=\\\$2+0}END{print max}')
+        echo "\$TREND" | while read DATE VAL; do
+            N=\$(awk "BEGIN{printf \\"%.0f\\", \$VAL * 30 / \$MAX_V}")
+            BAR=""
+            i=0
+            while [ "\$i" -lt "\$N" ]; do BAR="\${BAR}█"; i=\$((i+1)); done
+            while [ "\$i" -lt 30 ]; do BAR="\${BAR}░"; i=\$((i+1)); done
+            echo -e "  \${C_WHITE}\${DATE}\${C_RESET}  \${C_CYAN}\${BAR}\${C_RESET}  \${C_YELLOW}\${VAL}\${C_RESET}"
+        done
+    fi
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+}
+
+show_conn() {
+    echo ""
+    echo -e "\${C_GREEN}  🌐 网络连接概览\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    if command -v ss >/dev/null 2>&1; then
+        CONN=\$(ss -tun state established 2>/dev/null | tail -n +2 | wc -l)
+    elif command -v netstat >/dev/null 2>&1; then
+        CONN=\$(netstat -an 2>/dev/null | grep ESTABLISHED | wc -l)
+    else
+        CONN="N/A"
+    fi
+    echo -e "  \${C_WHITE}📡 活跃连接数: \${C_GREEN}\${CONN}\${C_RESET}"
+    echo ""
+    echo -e "  \${C_WHITE}🔍 连接目标端口 Top 5:\${C_RESET}"
+    if command -v ss >/dev/null 2>&1; then
+        ss -tun state established 2>/dev/null | tail -n +2 | awk '{print \$5}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
+            echo -e "    \${C_YELLOW}\${CNT}\${C_RESET} 次  →  \${C_CYAN}\${PORT}\${C_RESET}"
+        done
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -an 2>/dev/null | grep ESTABLISHED | awk '{print \$5}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
+            echo -e "    \${C_YELLOW}\${CNT}\${C_RESET} 次  →  \${C_CYAN}\${PORT}\${C_RESET}"
+        done
+    fi
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+}
+
+show_speed() {
+    echo ""
+    echo -e "\${C_GREEN}  ⚡ 实时流速 (2 秒采样)\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    IFACE=\$(ip route 2>/dev/null | awk '/default/{print \$5; exit}')
+    [ -z "\$IFACE" ] && IFACE="eth0"
+    if [ -f /proc/net/dev ]; then
+        R1=\$(awk -v iface="\$IFACE" "\$0~iface\":{gsub(/:/,\" \"); print \\\$2}" /proc/net/dev)
+        T1=\$(awk -v iface="\$IFACE" "\$0~iface\":{gsub(/:/,\" \"); print \\\$10}" /proc/net/dev)
+        [ -z "\$R1" ] && R1=0; [ -z "\$T1" ] && T1=0
+        echo -e "  \${C_WHITE}采样中，请稍候...\${C_RESET}"
+        sleep 2
+        R2=\$(awk -v iface="\$IFACE" "\$0~iface\":{gsub(/:/,\" \"); print \\\$2}" /proc/net/dev)
+        T2=\$(awk -v iface="\$IFACE" "\$0~iface\":{gsub(/:/,\" \"); print \\\$10}" /proc/net/dev)
+        [ -z "\$R2" ] && R2=0; [ -z "\$T2" ] && T2=0
+        DL=\$(( (R2 - R1) / 1024 / 2 ))
+        UL=\$(( (T2 - T1) / 1024 / 2 ))
+        echo -e "  ⬇️  下载: \${C_GREEN}\${DL} KB/s\${C_RESET}"
+        echo -e "  ⬆️  上传: \${C_YELLOW}\${UL} KB/s\${C_RESET}"
+    else
+        echo -e "  \${C_RED}无法读取 /proc/net/dev\${C_RESET}"
+    fi
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+}
+
+show_menu() {
+    echo ""
+    echo -e "\${C_CYAN}  ┌──── 操作菜单 ────┐\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[1] 刷新数据     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[2] 近7天趋势     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] 连接概览     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] 实时流速     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[0] 退出         \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  └──────────────────┘\${C_RESET}"
+}
+
+trap 'echo ""; exit 0' INT
+
+while true; do
+    show_menu
+    printf "  \${C_WHITE}请选择 > \${C_RESET}"
+    read CHOICE
+    case "\$CHOICE" in
+        1) exec "\$0" ;;
+        2) show_trend ;;
+        3) show_conn ;;
+        4) show_speed ;;
+        0|"") echo -e "\n  \${C_GREEN}👋 已退出面板\${C_RESET}"; exit 0 ;;
+        *) echo -e "  \${C_RED}无效选项，请重新输入\${C_RESET}" ;;
+    esac
+done
+EOF
+
+chmod +x /root/lin-panel.sh
+
+echo -e "${C_GREEN}[4/7] 🔄 正在配置自动重置脚本...${C_RESET}"
+
+cat << 'EOF' > /root/traffic_reset.sh
+#!/bin/sh
+systemctl stop vnstat
+rm -rf /var/lib/vnstat/*
+systemctl start vnstat
+EOF
+chmod +x /root/traffic_reset.sh
+
+echo -e "${C_GREEN}[5/7] 📊 正在配置每日流量记录与自动清理...${C_RESET}"
+
+# 读取现有 crontab，备份后追加我们的条目（不覆盖用户原有定时任务）
+EXISTING_CRON=$(crontab -l 2>/dev/null || true)
+
+# 趋势记录 + 自动保留最近 30 天（超出部分裁剪，防止日志无限增长）
+CRON_TREND='59 23 * * * echo "$(date +%Y-%m-%d) $(vnstat -m | awk '\''/total/{print $NF}'\'')" >> /root/traffic_history.log && tail -30 /root/traffic_history.log > /tmp/.tl && mv /tmp/.tl /root/traffic_history.log'
+CRON_RESET="${MINUTE} ${HOUR} ${DAY} * * sleep ${SECOND} && /root/traffic_reset.sh"
+
+# 升级兼容：移除旧版（无清理功能的）趋势记录条目，稍后重新添加带清理的新版
+EXISTING_CRON=$(echo "$EXISTING_CRON" | grep -v 'traffic_history\.log')
+
+NEW_ENTRIES=""
+if ! echo "$EXISTING_CRON" | grep -qF 'traffic_history.log'; then
+    NEW_ENTRIES="${NEW_ENTRIES}${CRON_TREND}\n"
+fi
+if ! echo "$EXISTING_CRON" | grep -qF 'traffic_reset.sh'; then
+    NEW_ENTRIES="${NEW_ENTRIES}${CRON_RESET}\n"
+fi
+
+if [ -n "$NEW_ENTRIES" ]; then
+    printf "%s\n%s" "$EXISTING_CRON" "$NEW_ENTRIES" | sed '/^$/d' | crontab -
+    echo -e "  -> 已追加 ${C_YELLOW}$(echo "$NEW_ENTRIES" | wc -l | tr -d ' ')${C_RESET} 条定时任务"
+else
+    echo -e "  -> 定时任务已存在，跳过写入"
+fi
+
+systemctl enable cron >/dev/null 2>&1
+systemctl start cron >/dev/null 2>&1
+
+echo -e "  -> 每月流量重置已配置: ${C_YELLOW}每月${DAY}日 ${HOUR}:${MINUTE}:${SECOND}${C_RESET}"
+
+echo -e "${C_GREEN}[6/7] 📱 正在配置 Telegram 流量推送...${C_RESET}"
+
+printf "  是否启用 Telegram 流量推送？[Y/n] [默认: N]: "
+read TG_ENABLE
+if [ "$TG_ENABLE" = "Y" ] || [ "$TG_ENABLE" = "y" ]; then
+    printf "  请输入 Telegram Bot Token: "
+    read TG_TOKEN
+    printf "  请输入 Telegram Chat ID: "
+    read TG_CHAT
+    echo ""
+    printf "  请选择推送频率:\n"
+    printf "    [1] 每日汇报\n"
+    printf "    [2] 每周汇报\n"
+    printf "    [3] 每月汇报\n"
+    printf "  请选择 [1/2/3] [默认: 1]: "
+    read TG_FREQ
+    # 月报：在重置日前一天 12:00 推送（重置前 12 小时）
+    PUSH_DAY=$((DAY - 1))
+    [ "$PUSH_DAY" -lt 1 ] && PUSH_DAY=28
+    case "$TG_FREQ" in
+        2) TG_CRON="0 12 * * 1" ; TG_LABEL="每周一 12:00" ;;
+        3) TG_CRON="0 12 ${PUSH_DAY} * *" ; TG_LABEL="每月${PUSH_DAY}日 12:00 (重置前12小时)" ;;
+        *) TG_CRON="0 9 * * *" ; TG_LABEL="每日 09:00" ;;
+    esac
+
+    cat << TGEOF > /root/traffic_check.sh
+#!/bin/sh
+LIMIT=${LIMIT}
+BILLING_MODE=${BILLING_MODE}
+TG_TOKEN="${TG_TOKEN}"
+TG_CHAT="${TG_CHAT}"
+
+VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+[ -z "\$VSTAT_RAW" ] && exit 0
+UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
+TRAFFIC_RAW=""
+if [ "\$BILLING_MODE" = "2" ]; then
+    TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$3} END{print v}')
+elif [ "\$BILLING_MODE" = "3" ]; then
+    TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$4} END{print v}')
+else
+    TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]+\.[0-9]+/{last=\$NF} END{print last}')
+fi
+[ -z "\$TRAFFIC_RAW" ] || [ -z "\$UNIT" ] && exit 0
+
+TRAFFIC_BYTES=0
+case "\$UNIT" in
+    *TiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1099511627776}") ;;
+    *GiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1073741824}") ;;
+    *MiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1048576}") ;;
+esac
+LIMIT_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$LIMIT * 1073741824}")
+[ "\$LIMIT_BYTES" -le 0 ] && exit 0
+PCT=\$(awk "BEGIN{printf \\"%.1f\\", \$TRAFFIC_BYTES * 100 / \$LIMIT_BYTES}")
+USED_GB=\$(awk "BEGIN{printf \\"%.2f\\", \$TRAFFIC_BYTES / 1073741824}")
+
+ICON="✅"
+awk "BEGIN{exit !(\$PCT >= 90)}" && ICON="🚨"
+awk "BEGIN{exit !(\$PCT >= 70)}" && ICON="⚠️"
+
+MSG="📊 LIN-Panel 流量报告
+━━━━━━━━━━━━━━━━
+\${ICON} 已用: \${USED_GB} / \${LIMIT} GB (\${PCT}%)
+📈 计费模式: \${BILLING_MODE}
+━━━━━━━━━━━━━━━━"
+
+curl -s -X POST "https://api.telegram.org/bot\${TG_TOKEN}/sendMessage" \\
+    -d chat_id="\${TG_CHAT}" \\
+    -d text="\${MSG}" \\
+    -d parse_mode="HTML" >/dev/null 2>&1
+TGEOF
+    chmod +x /root/traffic_check.sh
+
+    # 添加推送 cron（幂等）
+    EXISTING_CRON=$(crontab -l 2>/dev/null || true)
+    EXISTING_CRON=$(echo "$EXISTING_CRON" | grep -v 'traffic_check\.sh')
+    if ! echo "$EXISTING_CRON" | grep -qF 'traffic_check.sh'; then
+        printf "%s\n%s\n" "$EXISTING_CRON" "${TG_CRON} /root/traffic_check.sh" | sed '/^$/d' | crontab -
+    fi
+    echo -e "  -> Telegram 推送已启用: ${C_YELLOW}${TG_LABEL}${C_RESET}"
+    echo -e "  -> Bot: ${C_YELLOW}$(echo "$TG_TOKEN" | cut -c1-10)...${C_RESET}  Chat: ${C_YELLOW}${TG_CHAT}${C_RESET}"
+else
+    echo -e "  -> Telegram 推送已跳过"
+fi
+
+echo -e "${C_GREEN}[7/7] 🔐 正在配置登录自启与快捷命令...${C_RESET}"
+
+if [ "$ENABLE_LOGIN_AUTO" = "1" ]; then
+    if grep -q 'lin-panel.sh' /root/.profile 2>/dev/null; then
+        echo -e "  -> /root/.profile 中已存在面板配置，跳过写入。"
+    else
+        echo "/root/lin-panel.sh" >> /root/.profile
+        echo -e "  -> 已追加到 /root/.profile，SSH 登录时将自动展示面板。"
+    fi
+else
+    echo -e "  -> 已跳过登录自启配置。"
+fi
+
+ln -sf /root/lin-panel.sh /usr/local/bin/"$CMD"
+echo -e "  -> 快捷命令已创建: ${C_YELLOW}${CMD}${C_RESET}"
+
+echo ""
+echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
+echo -e "${C_GREEN}│                    🎉 安装完成！                             │${C_RESET}"
+echo -e "${C_CYAN}╰──────────────────────────────────────────────────────────────╯${C_RESET}"
+if [ "$ENABLE_LOGIN_AUTO" = "1" ]; then
+    echo -e "${C_WHITE}请断开 SSH 重新连接，或直接输入 ${C_YELLOW}source /root/.profile${C_WHITE} 查看效果！${C_RESET}"
+else
+    echo -e "${C_WHITE}手动查看面板请运行: ${C_YELLOW}${CMD}${C_RESET}"
+fi
+echo -e "${C_WHITE}快捷命令: ${C_YELLOW}${CMD}${C_WHITE} (随时可用)${C_RESET}"
+echo -e "${C_CYAN}────────────────────────────────────────────────────────────────${C_RESET}"
