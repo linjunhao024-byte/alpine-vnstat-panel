@@ -14,8 +14,17 @@ C_RESET='\033[0m'
 
 # ---- 打印 Logo ----
 clear
+echo -e "${C_CYAN}"
+echo '    __  ____ _  __          ____                   __'
+echo '   / / /  // |/ /         / __ \____ _____  ___  / /'
+echo '  / /  / / /    /  ______ / /_/ / __ `/ __ \/ _ \/ /'
+echo ' / /__/ / / /|  / /_____// ____/ /_/ / / / /  __/ /'
+echo '/____/___/_/ |_/        /_/    \__,_/_/ /_/\___/_/'
+echo -e "${C_RESET}"
+echo -e "${C_YELLOW}           极简流量监控伪面板 · v1.0${C_RESET}"
+echo ""
 echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
-echo -e "${C_YELLOW}│          欢迎使用 LIN 极简流量面板一键安装脚本         │${C_RESET}"
+echo -e "${C_YELLOW}│              欢迎使用 LIN 一键安装脚本                       │${C_RESET}"
 echo -e "${C_CYAN}╰──────────────────────────────────────────────────────────────╯${C_RESET}"
 echo ""
 
@@ -537,3 +546,7 @@ else
 fi
 echo -e "${C_WHITE}快捷命令: ${C_YELLOW}${CMD}${C_WHITE} (随时可用)${C_RESET}"
 echo -e "${C_CYAN}────────────────────────────────────────────────────────────────${C_RESET}"
+echo ""
+echo -e "${C_YELLOW}  ⭐ 如果这个面板对你有帮助，请给个 Star 支持一下！${C_RESET}"
+echo -e "${C_WHITE}  🔗 https://github.com/linjunhao024-byte/lin-panel${C_RESET}"
+echo ""
