@@ -14,7 +14,7 @@
 
 # 📊 LIN-Panel
 
-**Minimalist Traffic Monitor Pseudo-Panel · Alpine / Debian / Ubuntu**
+**Minimalist Traffic Monitor Pseudo-Panel · Alpine / Debian / Ubuntu · v1.0.0**
 
 > No ports · No daemons · No web frameworks · Everything runs inside SSH
 
@@ -240,12 +240,13 @@ The installation is fully interactive. All parameters are customizable — press
 
 | Step | Action | Description |
 |:---:|--------|-------------|
-| 1/6 | 🌐 Timezone | Optional sync to Asia/Shanghai for Beijing time alignment |
-| 2/6 | 📦 vnstat | Install the only hard dependency |
-| 3/6 | 🎨 Generate Panel | Heredoc with dynamic variable injection |
-| 4/6 | 🔄 Reset Script | Monthly vnstat data cleanup |
-| 5/6 | 📊 Cron Tasks | Idempotent append, no overwrite |
-| 6/6 | 🔐 Login Config | Idempotent .profile write + command symlink |
+| 1/7 | 🌐 Timezone | 9 popular timezones, or keep current |
+| 2/7 | 📦 vnstat | Install the only hard dependency |
+| 3/7 | 🎨 Generate Panel | Heredoc with dynamic variable injection |
+| 4/7 | 🔄 Reset Script | Monthly vnstat data cleanup |
+| 5/7 | 📊 Cron Tasks | Idempotent append, no overwrite |
+| 6/7 | 📱 Telegram | Optional, daily/weekly/monthly alerts |
+| 7/7 | 🔐 Login Config | Idempotent .profile write + command symlink |
 
 ---
 
@@ -276,6 +277,7 @@ your-custom-name     # or your chosen name
   │  [2] 7-Day Trend  │  ← View bar chart
   │  [3] Connections  │  ← View connection status
   │  [4] Speed Test   │  ← Measure current speed
+  │  [5] Uninstall    │  ← Remove all files
   │  [0] Exit         │  ← Return to shell
   └──────────────────┘
 ```
@@ -302,6 +304,7 @@ your-custom-name     # or your chosen name
   │  [2] 7-Day Trend  │
   │  [3] Connections  │
   │  [4] Speed Test   │
+  │  [5] Uninstall    │
   │  [0] Exit         │
   └──────────────────┘
 ```
