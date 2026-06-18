@@ -20,7 +20,7 @@ echo -e "${C_RESET}"
 echo -e "${C_YELLOW}           Minimalist Traffic Panel · v1.0.0${C_RESET}"
 echo ""
 echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
-echo -e "${C_YELLOW}│              Welcome to LIN Installer                       │${C_RESET}"
+echo -e "${C_YELLOW}│              Welcome to LIN-PANEL Installer                       │${C_RESET}"
 echo -e "${C_CYAN}╰──────────────────────────────────────────────────────────────╯${C_RESET}"
 echo ""
 
@@ -96,6 +96,18 @@ case "$CMD" in */*|*\ *) echo -e "  ${C_RED}⚠ Command name cannot contain / or
 esac
 echo -e "  -> Command: ${C_YELLOW}${CMD}${C_RESET}"
 echo ""
+
+# 6. 已使用流量基线
+printf "Has the server been running? Enter traffic already used (GB) [default: 0]: "
+read BASELINE
+BASELINE="${BASELINE:-0}"
+case "$BASELINE" in *[!0-9.]*) echo -e "  ${C_RED}⚠ 输入invalid, default 0${C_RESET}"; BASELINE=0 ;; esac
+if [ "$BASELINE" != "0" ]; then
+    echo -e "  -> Traffic baseline: ${C_YELLOW}${BASELINE}GB${C_RESET} (added to vnstat stats)"
+else
+    echo -e "  -> No baseline, counting from zero"
+fi
+echo ""
 echo -e "${C_CYAN}└────────────────────────────────────┘${C_RESET}"
 echo ""
 
@@ -164,6 +176,7 @@ C_RESET='\\033[0m'
 
 LIMIT=${LIMIT}
 BILLING_MODE=${BILLING_MODE}
+BASELINE=${BASELINE}
 RESET_DAY=${DAY}
 RESET_HOUR=${HOUR}
 RESET_MIN=${MINUTE}
@@ -195,6 +208,8 @@ if [ -n "\$VSTAT_RAW" ]; then
             *GiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1073741824}") ;;
             *MiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1048576}") ;;
         esac
+        BASELINE_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$BASELINE * 1073741824}")
+        TRAFFIC_BYTES=\$(( TRAFFIC_BYTES + BASELINE_BYTES ))
         LIMIT_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$LIMIT * 1073741824}")
         if [ "\$LIMIT_BYTES" -gt 0 ] && [ "\$TRAFFIC_BYTES" -gt 0 ]; then
             PCT=\$(awk "BEGIN{printf \\"%.1f\\", \$TRAFFIC_BYTES * 100 / \$LIMIT_BYTES}")
@@ -235,7 +250,7 @@ fi
 
 clear
 echo -e "\${C_CYAN}╭──────────────────────────────────────────────────────────────╮\${C_RESET}"
-echo -e "\${C_YELLOW}│              📊 LIN Traffic Monitor              │\${C_RESET}"
+echo -e "\${C_YELLOW}│              📊 LIN-PANEL Traffic Monitor              │\${C_RESET}"
 echo -e "\${C_CYAN}╰──────────────────────────────────────────────────────────────╯\${C_RESET}"
 echo ""
 echo -e "\${C_GREEN}  📈 Current Traffic ─ \${BILLING_LABEL}Limit: ${LIMIT}GB\${C_RESET}"
@@ -389,6 +404,18 @@ do_uninstall() {
         echo -e "  ✅ Login auto-start removed"
     fi
     echo ""
+    printf "  Also uninstall vnstat (traffic tool)？[y/N] [default: N]: "
+    read RM_VNSTAT
+    if [ "\$RM_VNSTAT" = "y" ] || [ "\$RM_VNSTAT" = "Y" ]; then
+        systemctl stop vnstat 2>/dev/null || systemctl stop vnstat 2>/dev/null
+        systemctl disable vnstat 2>/dev/null || systemctl disable vnstat 2>/dev/null
+        apk del vnstat 2>/dev/null || apt-get remove -y vnstat 2>/dev/null
+        rm -rf /var/lib/vnstat
+        echo -e "  ✅ vnstat uninstalled"
+    else
+        echo -e "  -> vnstat kept"
+    fi
+    echo ""
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────\${C_RESET}"
     echo -e "\${C_GREEN}  🎉 Uninstall complete!\${C_RESET}"
     echo ""
@@ -508,7 +535,7 @@ if [ "$TG_ENABLE" = "Y" ] || [ "$TG_ENABLE" = "y" ]; then
         read TG_CHAT
         echo ""
         echo -e "  ${C_WHITE}Sending test message...${C_RESET}"
-        if curl -s -o /tmp/.tg_test.json -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" -d chat_id="${TG_CHAT}" -d text="🔔 LIN-Panel Test" -d parse_mode="HTML" 2>/dev/null; then
+        if curl -sf -o /tmp/.tg_test.json -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" -d chat_id="${TG_CHAT}" -d text="🔔 LIN-Panel Test" -d parse_mode="HTML" 2>/dev/null; then
             echo -e "  ${C_GREEN}✅ Test sent! Check your Telegram${C_RESET}"
             TG_OK=1
         else
@@ -550,6 +577,7 @@ if [ "$TG_ENABLE" = "Y" ] || [ "$TG_ENABLE" = "y" ]; then
 #!/bin/bash
 LIMIT=${LIMIT}
 BILLING_MODE=${BILLING_MODE}
+BASELINE=${BASELINE}
 TG_TOKEN="${TG_TOKEN}"
 TG_CHAT="${TG_CHAT}"
 
@@ -572,6 +600,8 @@ case "\$UNIT" in
     *GiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1073741824}") ;;
     *MiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1048576}") ;;
 esac
+BASELINE_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$BASELINE * 1073741824}")
+TRAFFIC_BYTES=\$(( TRAFFIC_BYTES + BASELINE_BYTES ))
 LIMIT_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$LIMIT * 1073741824}")
 [ "\$LIMIT_BYTES" -le 0 ] && exit 0
 PCT=\$(awk "BEGIN{printf \\"%.1f\\", \$TRAFFIC_BYTES * 100 / \$LIMIT_BYTES}")

@@ -14,7 +14,7 @@
 
 # 📊 LIN-Panel
 
-**Minimalist Traffic Monitor Pseudo-Panel · Alpine / Debian / Ubuntu · v1.0.0**
+**Minimalist Traffic Monitor Pseudo-Panel · v1.0.0**
 
 > No ports · No daemons · No web frameworks · Everything runs inside SSH
 
@@ -25,131 +25,48 @@
 ![Alpine](https://img.shields.io/badge/Alpine%20Linux-0A1628?style=for-the-badge&logo=alpinelinux&logoColor=white)
 ![Debian](https://img.shields.io/badge/Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
-![Language](https://img.shields.io/badge/Language-POSIX%20sh-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-FF6B6B?style=for-the-badge)
 
 </div>
 
 ---
 
-## 📖 Table of Contents
-
-- [🤔 Why This Exists](#-why-this-exists)
-- [✨ Features](#-features)
-- [🚀 Quick Install](#-quick-install)
-- [📋 Installation Wizard](#-installation-wizard)
-- [🖥️ Usage](#️-usage)
-- [🖼️ Preview](#️-preview)
-- [📁 File Structure](#-file-structure)
-- [⚙️ Architecture](#️-architecture)
-- [❓ FAQ](#-faq)
-- [📄 License](#-license)
-
----
-
 ## 🤔 Why This Exists
 
-You have an overseas VPS with a monthly traffic cap and bidirectional billing. Your biggest fear: **silently exceeding the limit and getting throttled or charged extra.**
-
-Existing solutions are either too heavy (web panels consume resources and expose ports) or too light (raw `vnstat` output is hard to read).
-
-**LIN-Panel** strikes the balance:
+You have a VPS with a monthly traffic cap. Your biggest fear: **silently exceeding the limit and getting throttled.**
 
 | | Web Panel | vnstat CLI | **LIN-Panel** |
 |---|:---:|:---:|:---:|
 | Opens ports | ✅ Yes | ❌ No | ❌ **No** |
 | Security risk | ⚠️ Scannable | ✅ None | ✅ **None** |
-| Resource usage | 100MB+ | ~0 | **~2MB** |
+| Resources | 100MB+ | ~0 | **~3MB** |
 | Human-readable | ✅ | ❌ | ✅ |
-| Traffic alerts | ✅ | ❌ | ✅ |
-| Installation | Complex | None needed | **One command** |
+| Alerts | ✅ | ❌ | ✅ |
+| Install | Complex | None needed | **One command** |
 
 ---
 
 ## ✨ Features
 
-<table>
-<tr>
-<td width="50%">
-
-### 📊 Data Display
-- 📈 Real-time traffic overview (RX/TX/Total)
-- ⏰ Reset countdown (days/hours/minutes)
-- 📅 Daily traffic detail table
-- 🌐 Localized vnstat monthly/daily tables
-
-</td>
-<td width="50%">
-
-### 🔔 Smart Alerts
-- ✅ Green: traffic < 70%
-- ⚠️ Yellow: traffic 70-90%
-- 🚨 Red: traffic > 90%
-- Auto-calculated percentage & usage
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 📈 Trend Analysis
-- 7-day traffic bar chart
-- Daily automatic snapshots
-- █░ text rendering, intuitive
-- Auto-normalized for any scale
-
-</td>
-<td width="50%">
-
-### 🌐 Network Diagnostics
-- Active connection count
-- Top 5 destination ports
-- Real-time speed sampling (UL/DL)
-- Quick identification of traffic anomalies
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 🔐 Billing Modes
-- Bidirectional (RX + TX)
-- Inbound only (download)
-- Outbound only (upload)
-- Choose during installation
-
-</td>
-<td width="50%">
-
-### ⌨️ Interactive UX
-- Custom command name
-- Numbered menu navigation
-- Auto-show on login (optional)
-- Idempotent install, safe to re-run
-
-### 🌐 Timezone Management
-- 9 popular timezones available
-- CN/HK/JP/SG/US East/US West/UK/EU/UTC
-
-### 📱 Telegram Alerts
-- Auto-push traffic reports to your phone
-- Daily / Weekly / Monthly frequency
-- Percentage alerts (⚠️70% / 🚨90%)
-
-</td>
-</tr>
-</table>
+| Module | Features |
+|--------|----------|
+| 📊 **Data Display** | Real-time traffic · Reset countdown · Daily details · Localized vnstat tables |
+| 🔔 **Smart Alerts** | 🟢 <70% · 🟡 70-90% · 🔴 >90% · Auto-calculated percentage |
+| 📈 **Trend Analysis** | 7-day bar chart · Daily snapshots · Auto-trim 30 days |
+| 🌐 **Network Diag** | Active connections · Local ports Top 5 · Real-time speed |
+| 🔐 **Billing Modes** | Bidirectional / Inbound / Outbound · Choose at install |
+| 🌐 **Timezone** | 9 popular timezones · CN/HK/JP/SG/US/UK/EU/UTC |
+| 📱 **Telegram** | Traffic reports · Daily/weekly/monthly · Test message verify |
+| ⌨️ **Interactive** | Custom command · Numbered menu · One-click uninstall · Idempotent |
 
 ---
 
 ## 🚀 Quick Install
 
-Choose the install script for your system:
-
 ### Alpine Linux
 
 ```bash
-wget -O install-alpine.sh https://raw.githubusercontent.com/linjunhao024-byte/Lin-Panel/main/install.sh && chmod +x install-alpine.sh chmod +x install-alpine.sh chmod +x install.sh && ./install.shchmod +x install.sh && ./install.sh ./install-alpine.shchmod +x install-alpine.sh chmod +x install.sh && ./install.shchmod +x install.sh && ./install.sh ./install-alpine.sh ./install-alpine.sh
+wget -O install-alpine.sh https://raw.githubusercontent.com/linjunhao024-byte/Lin-Panel/main/install-alpine.sh && chmod +x install-alpine.sh && ./install-alpine.sh
 ```
 
 ### Debian
@@ -164,37 +81,41 @@ wget -O install-debian.sh https://raw.githubusercontent.com/linjunhao024-byte/Li
 wget -O install-ubuntu.sh https://raw.githubusercontent.com/linjunhao024-byte/Lin-Panel/main/install-ubuntu.sh && chmod +x install-ubuntu.sh && ./install-ubuntu.sh
 ```
 
-### English Panel Versions
+### English Panel
 
-If you prefer the panel UI in English, use the `-en` scripts:
+Use `-en` suffix scripts:
 
 ```bash
-# Alpine Linux (English Panel)
+# Alpine (English)
 wget -O install-alpine-en.sh https://raw.githubusercontent.com/linjunhao024-byte/Lin-Panel/main/install-alpine-en.sh && chmod +x install-alpine-en.sh && ./install-alpine-en.sh
 
-# Debian (English Panel)
+# Debian (English)
 wget -O install-debian-en.sh https://raw.githubusercontent.com/linjunhao024-byte/Lin-Panel/main/install-debian-en.sh && chmod +x install-debian-en.sh && ./install-debian-en.sh
 
-# Ubuntu (English Panel)
+# Ubuntu (English)
 wget -O install-ubuntu-en.sh https://raw.githubusercontent.com/linjunhao024-byte/Lin-Panel/main/install-ubuntu-en.sh && chmod +x install-ubuntu-en.sh && ./install-ubuntu-en.sh
 ```
 
-### Or clone
+### Clone
 
 ```bash
 git clone https://github.com/linjunhao024-byte/Lin-Panel.git
 cd Lin-Panel
-# Choose your system:
-chmod +x install-alpine.sh chmod +x install-alpine.sh chmod +x install.sh && ./install.shchmod +x install.sh && ./install.sh ./install-alpine.shchmod +x install-alpine.sh chmod +x install.sh && ./install.shchmod +x install.sh && ./install.sh ./install-alpine.sh ./install-alpine.sh                # Alpine
-chmod +x install-debian.sh && ./install-debian.sh  # Debian
-chmod +x install-ubuntu.sh && ./install-ubuntu.sh  # Ubuntu
+# Chinese
+chmod +x install-alpine.sh && ./install-alpine.sh     # Alpine
+chmod +x install-debian.sh && ./install-debian.sh     # Debian
+chmod +x install-ubuntu.sh && ./install-ubuntu.sh     # Ubuntu
+# English
+chmod +x install-alpine-en.sh && ./install-alpine-en.sh   # Alpine
+chmod +x install-debian-en.sh && ./install-debian-en.sh   # Debian
+chmod +x install-ubuntu-en.sh && ./install-ubuntu-en.sh   # Ubuntu
 ```
 
 ### Requirements
 
 | Item | Requirement |
 |------|-------------|
-| OS | Alpine Linux / Debian / Ubuntu |
+| OS | Alpine / Debian / Ubuntu |
 | Privileges | root |
 | Dependencies | vnstat (auto-installed) |
 | Disk | < 5MB |
@@ -204,81 +125,55 @@ chmod +x install-ubuntu.sh && ./install-ubuntu.sh  # Ubuntu
 
 ## 📋 Installation Wizard
 
-The installation is fully interactive. All parameters are customizable — press Enter for defaults:
+Fully interactive, press Enter for defaults:
 
 ```
-╭──────────────────────────────────────────────────────────────╮
-│       Welcome to linjunhao024-byte Minimalist Traffic Panel Installer │
-╰──────────────────────────────────────────────────────────────╯
-
 ┌──────────── Configuration ────────────┐
 
-  ① Traffic Limit
-     Enter traffic limit (GB) [default: 350]:
+  ① Traffic limit     [default: 350GB]
+  ② Billing mode      [Bidirectional / Inbound / Outbound]
+  ③ Reset time        [Day 1-31 + H:M:S]
+  ④ Login auto-start  [Y/n]
+  ⑤ Command name      [default: lin-panel]
 
-  ② Billing Mode
-     [1] Bidirectional (Inbound+Outbound) [default]
-     [2] Inbound only (Download)
-     [3] Outbound only (Upload)
+└───────────────────────────────────────┘
 
-  ③ Reset Time
-     Day (1-28)    [default 1]:
-     Hour (0-23)   [default 0]:
-     Minute (0-59) [default 0]:
-     Second (0-59) [default 0]:
+┌──────────── Steps ────────────────────┐
 
-  ④ Auto-Show on Login
-     Show panel on SSH login? [Y/n] [default: Y]
+  [1/7] 🌐 Timezone      9 timezones
+  [2/7] 📦 vnstat         Only dependency
+  [3/7] 🎨 Generate       Dynamic injection
+  [4/7] 🔄 Reset          Smart month-end fallback
+  [5/7] 📊 Cron           Idempotent append
+  [6/7] 📱 Telegram       Test message verify
+  [7/7] 🔐 Login config   Idempotent write
 
-  ⑤ Command Name
-     Enter custom command name [default: lin-panel]:
-
-└────────────────────────────────────┘
+└───────────────────────────────────────┘
 ```
-
-### Installation Steps
-
-| Step | Action | Description |
-|:---:|--------|-------------|
-| 1/7 | 🌐 Timezone | 9 popular timezones, or keep current |
-| 2/7 | 📦 vnstat | Install the only hard dependency |
-| 3/7 | 🎨 Generate Panel | Heredoc with dynamic variable injection |
-| 4/7 | 🔄 Reset Script | Monthly vnstat data cleanup |
-| 5/7 | 📊 Cron Tasks | Idempotent append, no overwrite |
-| 6/7 | 📱 Telegram | Optional, daily/weekly/monthly alerts |
-| 7/7 | 🔐 Login Config | Idempotent .profile write + command symlink |
 
 ---
 
 ## 🖥️ Usage
 
-### Option 1: Auto-Show (Recommended)
-
-Enable during installation. The panel pops up automatically on every SSH login.
-
-### Option 2: Custom Command
-
 ```bash
-lin-panel            # default command name
-your-custom-name     # or your chosen name
-```
+# Auto-show (recommended) — pops up on every SSH login
+# Custom command — open anytime
+lin-panel              # or your custom name
 
-### Option 3: Direct Execution
-
-```bash
+# Direct execution
 /root/lin-panel.sh
 ```
 
-### Menu Operations
+### Menu
 
 ```
   ┌──── Menu ────────┐
-  │  [1] Refresh      │  ← Reload panel data
-  │  [2] 7-Day Trend  │  ← View bar chart
-  │  [3] Connections  │  ← View connection status
-  │  [4] Speed Test   │  ← Measure current speed
+  │  [1] Refresh      │  ← Reload panel
+  │  [2] 7-Day Trend  │  ← Bar chart
+  │  [3] Connections  │  ← Connection status
+  │  [4] Speed Test   │  ← Measure speed
   │  [5] Uninstall    │  ← Remove all files
-  │  [0] Exit         │  ← Return to shell
+  │  [0] Exit         │  ← Back to shell
   └──────────────────┘
 ```
 
@@ -286,17 +181,15 @@ your-custom-name     # or your chosen name
 
 ## 🖼️ Preview
 
-### 🟢 Normal State (< 70%)
-
 ```
 ╭──────────────────────────────────────────────────────────────╮
-│           📊 linjunhao024-byte Traffic Monitor               │
+│                    📊 LIN-PANEL Traffic Monitor                    │
 ╰──────────────────────────────────────────────────────────────╯
 
   📈 Current Traffic ─ Bidirectional Limit: 350GB
-     ✅ Used: 83.90 / 350 GB (24.0%)       ← Green <70%
-     ⚠️ Used: 248.50 / 350 GB (71.0%)      ← Yellow 70-90%
-     🚨 Used: 319.20 / 350 GB (91.2%)      ← Red >90%
+     ✅ Used: 83.90 / 350 GB (24.0%)       ← 🟢 Normal
+     ⚠️ Used: 248.50 / 350 GB (71.0%)      ← 🟡 Warning
+     🚨 Used: 319.20 / 350 GB (91.2%)      ← 🔴 Critical
      ⏰ Reset in: 13d 7h 22m
 
   ┌──── Menu ────────┐
@@ -315,17 +208,18 @@ your-custom-name     # or your chosen name
 
 ```
 /root/
-├── lin-panel.sh           # Panel script
-├── traffic_reset.sh       # Monthly reset
-├── traffic_check.sh       # Telegram alerts (optional)
-└── traffic_history.log    # Trend log (auto-trim 30 days)
+├── lin-panel.sh              # Panel script
+├── traffic_reset_check.sh    # Smart reset (month-end fallback)
+├── traffic_check.sh          # Telegram push (optional)
+└── traffic_history.log       # Trend log (auto-trim 30 days)
 
 /usr/local/bin/
 └── lin-panel → /root/lin-panel.sh
 
 Crontab:
-├── 59 23 * * *  Daily 23:59 record traffic snapshot
-└── MM HH DD * * Monthly traffic reset
+├── 59 23 * * *        Daily record + trim
+├── 0 0 * * *          Daily reset check
+└── 0 9/12 * * *       Telegram push (optional)
 ```
 
 ---
@@ -340,14 +234,15 @@ Crontab:
                           │
               ┌───────────▼───────────┐
               │     lin-panel.sh      │
-              │   (Pure POSIX sh)     │
+              │  bash (Debian/Ubuntu) │
+              │  sh (Alpine)          │
               └───────────┬───────────┘
                           │
          ┌────────────────┼────────────────┐
          │                │                │
     ┌────▼─────┐   ┌──────▼──────┐  ┌─────▼──────┐
-    │ vnstat   │   │ /proc/net/  │  │ Runtime    │
-    │ Database │   │    dev      │  │ Calculation│
+    │ vnstat   │   │ sys/class/  │  │ Runtime    │
+    │ Database │   │ net/        │  │ Calculation│
     │(kernel)  │   │(kernel API) │  │            │
     │          │   │             │  │ Percentage │
     │ Monthly/ │   │ RX/TX bytes │  │ Countdown  │
@@ -355,11 +250,9 @@ Crontab:
     └──────────┘   └─────────────┘  └────────────┘
 ```
 
-### Resource Usage
-
 | Component | Memory | CPU | Ports |
 |-----------|:---:|:---:|:---:|
-| vnstat | ~2MB | 0% (kernel-level) | None |
+| vnstat | ~2MB | 0% (kernel) | None |
 | Panel script | ~1MB (runtime) | ~0% (runtime) | None |
 | Cron tasks | ~0 | ~0 | None |
 | **Total** | **~3MB** | **~0%** | **0** |
@@ -369,75 +262,55 @@ Crontab:
 ## ❓ FAQ
 
 <details>
-<summary><strong>Q: Panel shows "No historical data"?</strong></summary>
+<summary><strong>Q: Panel shows "No data"?</strong></summary>
 
-vnstat needs time to collect data. Wait a few minutes after installation, or trigger manually:
-
-```bash
-vnstat -u
-```
+vnstat needs a few minutes to collect data. Wait or run: `vnstat -u`
 
 </details>
 
 <details>
-<summary><strong>Q: How to change the traffic limit or billing mode?</strong></summary>
+<summary><strong>Q: How to change config?</strong></summary>
 
-Re-run the installation script. All parameters will be reconfigured without affecting existing data.
+Re-run the installer. All parameters reconfigure without affecting existing data.
 
 </details>
 
 <details>
 <summary><strong>Q: How to uninstall?</strong></summary>
 
+Use menu `[5] Uninstall`, or manually:
+
 ```bash
-# Remove panel script and command
-rm -f /root/lin-panel.sh /usr/local/bin/lin-panel
-
-# Remove reset script and logs
-rm -f /root/traffic_reset.sh /root/traffic_history.log
-
-# Remove from .profile (manual edit)
-vi /root/.profile
-
-# Remove cron entries
-crontab -e
+rm -f /root/lin-panel.sh /root/traffic_reset_check.sh /root/traffic_check.sh /root/traffic_history.log
+rm -f /usr/local/bin/lin-panel
+sed -i '/lin-panel/d' /root/.profile
+crontab -e  # remove related entries
 ```
 
 </details>
 
 <details>
-<summary><strong>Q: What happens if I run the installer again?</strong></summary>
+<summary><strong>Q: Re-install safe?</strong></summary>
 
-Safe by design. The script uses idempotent operations:
-
-- `.profile`: checks before appending
-- Cron: checks for existing entries before adding
-- Symlink: `ln -sf` auto-overwrites
+Yes. Idempotent design: `.profile` checks before append, Cron deduplicates, `ln -sf` auto-overwrites.
 
 </details>
 
 <details>
-<summary><strong>Q: Which Linux distros are supported?</strong></summary>
+<summary><strong>Q: Supported systems?</strong></summary>
 
-Officially supported with dedicated install scripts:
-
-| Distro | Install Script | Package Manager | Service Manager |
-|--------|---------------|-----------------|-----------------|
-| Alpine Linux | `install.sh` | apk | OpenRC |
+| System | Script | Package Manager | Service Manager |
+|--------|--------|-----------------|-----------------|
+| Alpine | `install-alpine.sh` | apk | OpenRC |
 | Debian | `install-debian.sh` | apt-get | systemd |
 | Ubuntu | `install-ubuntu.sh` | apt-get | systemd |
 
-To port to other distros (CentOS, Arch, etc.):
-
-- Package manager: `apk` / `apt-get` → `yum` / `pacman`
-- Service manager: `rc-service` / `systemctl` → equivalent commands
-
 </details>
 
 <details>
-<summary><strong>Q: How accurate is the traffic data?</strong></summary>
+<summary><strong>Q: How accurate?</strong></summary>
 
-Data comes from vnstat, which reads kernel network interface statistics. Typical accuracy is within 1-3%.
+Data from vnstat (kernel network stats). Typical accuracy: 1-3%.
 
 </details>
 
@@ -451,9 +324,7 @@ Data comes from vnstat, which reads kernel network interface statistics. Typical
 
 <div align="center">
 
-**If this project helps you, please give it a ⭐ Star!**
-
-<br>
+**⭐ If this helps you, give a Star!**
 
 ![Star](https://img.shields.io/github/stars/linjunhao024-byte/Lin-Panel?style=social)
 
