@@ -10,10 +10,6 @@
 
 **如果这个项目对你有帮助，请给一个 ⭐ Star！**
 
-![Stars](https://img.shields.io/github/stars/linjunhao024-byte/Lin-Panel?style=social)
-![Forks](https://img.shields.io/github/forks/linjunhao024-byte/Lin-Panel?style=social)
-![Issues](https://img.shields.io/github/issues/linjunhao024-byte/Lin-Panel?style=social)
-
 # 📊 LIN-Panel
 
 **极简流量监控伪面板 · v1.0.0**
@@ -24,12 +20,12 @@
 
 <br>
 
-![Alpine](https://img.shields.io/badge/Alpine%20Linux-0A1628?style=for-the-badge&logo=alpinelinux&logoColor=white)
-![Debian](https://img.shields.io/badge/Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
-![License](https://img.shields.io/github/license/linjunhao024-byte/Lin-Panel?style=for-the-badge)
-![vnstat](https://img.shields.io/badge/vnstat-依赖-2E86C1?style=for-the-badge)
-![bash](https://img.shields.io/badge/bash-脚本-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)
+[![Stars](https://img.shields.io/github/stars/linjunhao024-byte/Lin-Panel?style=flat&logo=github&cacheSeconds=60)](https://github.com/linjunhao024-byte/Lin-Panel/stargazers)
+[![Forks](https://img.shields.io/github/forks/linjunhao024-byte/Lin-Panel?style=flat&logo=github&cacheSeconds=60)](https://github.com/linjunhao024-byte/Lin-Panel/network/members)
+[![Issues](https://img.shields.io/github/issues/linjunhao024-byte/Lin-Panel?style=flat&logo=github&cacheSeconds=60)](https://github.com/linjunhao024-byte/Lin-Panel/issues)
+[![License](https://img.shields.io/github/license/linjunhao024-byte/Lin-Panel?style=flat&cacheSeconds=3600)](https://github.com/linjunhao024-byte/Lin-Panel/blob/main/LICENSE)
+[![Language](https://img.shields.io/badge/Language-Shell-007ACC?style=flat&logo=gnu-bash)](#)
+[![Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen?style=flat)](#)
 
 </div>
 
