@@ -188,6 +188,7 @@ USED_GB=0
 BILLING_LABEL="双向计费"
 
 VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+TRAFFIC_BYTES=0
 if [ -n "\$VSTAT_RAW" ]; then
     UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
     TRAFFIC_RAW=""
@@ -202,26 +203,25 @@ if [ -n "\$VSTAT_RAW" ]; then
         TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]+\\.[0-9]+/{last=\\\$NF} END{print last}')
     fi
     if [ -n "\$TRAFFIC_RAW" ] && [ -n "\$UNIT" ]; then
-        TRAFFIC_BYTES=0
         case "\$UNIT" in
             *TiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1099511627776}") ;;
             *GiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1073741824}") ;;
             *MiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1048576}") ;;
         esac
-        BASELINE_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$BASELINE * 1073741824}")
-        TRAFFIC_BYTES=\$(( TRAFFIC_BYTES + BASELINE_BYTES ))
-        LIMIT_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$LIMIT * 1073741824}")
-        if [ "\$LIMIT_BYTES" -gt 0 ] && [ "\$TRAFFIC_BYTES" -gt 0 ]; then
-            PCT=\$(awk "BEGIN{printf \\"%.1f\\", \$TRAFFIC_BYTES * 100 / \$LIMIT_BYTES}")
-            USED_GB=\$(awk "BEGIN{printf \\"%.2f\\", \$TRAFFIC_BYTES / 1073741824}")
-            if awk "BEGIN{exit !(\$PCT >= 90)}"; then
-                ALERT="red"
-            elif awk "BEGIN{exit !(\$PCT >= 70)}"; then
-                ALERT="yellow"
-            else
-                ALERT="green"
-            fi
-        fi
+    fi
+fi
+BASELINE_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$BASELINE * 1073741824}")
+TRAFFIC_BYTES=\$(( TRAFFIC_BYTES + BASELINE_BYTES ))
+LIMIT_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$LIMIT * 1073741824}")
+if [ "\$LIMIT_BYTES" -gt 0 ] && [ "\$TRAFFIC_BYTES" -gt 0 ]; then
+    PCT=\$(awk "BEGIN{printf \\"%.1f\\", \$TRAFFIC_BYTES * 100 / \$LIMIT_BYTES}")
+    USED_GB=\$(awk "BEGIN{printf \\"%.2f\\", \$TRAFFIC_BYTES / 1073741824}")
+    if awk "BEGIN{exit !(\$PCT >= 90)}"; then
+        ALERT="red"
+    elif awk "BEGIN{exit !(\$PCT >= 70)}"; then
+        ALERT="yellow"
+    else
+        ALERT="green"
     fi
 fi
 
@@ -269,37 +269,13 @@ if [ -n "\$CDOWN" ]; then
 fi
 echo -e "\${C_CYAN}────────────────────────────────────────────────────────────────\${C_RESET}"
 echo ""
-echo -e "\${C_CYAN}  ┌──────────────────────────────────────────────────────────┐\${C_RESET}"
-VSTAT_M=\$(vnstat -m 2>/dev/null | sed \\
-    -e 's/rx/入站(RX)/g' \\
-    -e 's/tx/出站(TX)/g' \\
-    -e 's/total/合计(Total)/g' \\
-    -e 's/estimated/预计/g' \\
-    -e 's/month/月份/g' \\
-    -e 's/-/─/g' \\
-    -e 's/+/┼/g' \\
-    -e 's/|/│/g')
-printf "\${C_CYAN}"
-printf '%s\\n' "\$VSTAT_M"
-printf "\${C_RESET}"
-echo -e "\${C_CYAN}  └──────────────────────────────────────────────────────────┘\${C_RESET}"
+VSTAT_M=\$(vnstat -m 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
+printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_M"
 
 echo ""
 echo -e "\${C_GREEN}  📅 每日流量明细\${C_RESET}"
-echo -e "\${C_CYAN}  ┌──────────────────────────────────────────────────────────┐\${C_RESET}"
-VSTAT_D=\$(vnstat -d 2>/dev/null | sed \\
-    -e 's/rx/入站(RX)/g' \\
-    -e 's/tx/出站(TX)/g' \\
-    -e 's/total/合计(Total)/g' \\
-    -e 's/estimated/预计/g' \\
-    -e 's/day/日期/g' \\
-    -e 's/-/─/g' \\
-    -e 's/+/┼/g' \\
-    -e 's/|/│/g')
-printf "\${C_CYAN}"
-printf '%s\\n' "\$VSTAT_D"
-printf "\${C_RESET}"
-echo -e "\${C_CYAN}  └──────────────────────────────────────────────────────────┘\${C_RESET}"
+VSTAT_D=\$(vnstat -d 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
+printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_D"
 
 show_trend() {
     echo ""
@@ -430,7 +406,7 @@ show_menu() {
     echo ""
     echo -e "\${C_CYAN}  ┌──── 操作菜单 ────┐\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[1] 刷新数据     \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[2] 近7天趋势     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[2] 近7天趋势    \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] 连接概览     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] 实时流速     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[5] 一键卸载     \${C_CYAN}│\${C_RESET}"
@@ -582,24 +558,25 @@ TG_TOKEN="${TG_TOKEN}"
 TG_CHAT="${TG_CHAT}"
 
 VSTAT_RAW=\$(vnstat -m 2>/dev/null)
-[ -z "\$VSTAT_RAW" ] && exit 0
-UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
-TRAFFIC_RAW=""
-if [ "\$BILLING_MODE" = "2" ]; then
-    TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$3} END{print v}')
-elif [ "\$BILLING_MODE" = "3" ]; then
-    TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$4} END{print v}')
-else
-    TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]+\.[0-9]+/{last=\$NF} END{print last}')
-fi
-[ -z "\$TRAFFIC_RAW" ] || [ -z "\$UNIT" ] && exit 0
-
 TRAFFIC_BYTES=0
-case "\$UNIT" in
-    *TiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1099511627776}") ;;
-    *GiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1073741824}") ;;
-    *MiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1048576}") ;;
-esac
+if [ -n "\$VSTAT_RAW" ]; then
+    UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
+    TRAFFIC_RAW=""
+    if [ "\$BILLING_MODE" = "2" ]; then
+        TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$3} END{print v}')
+    elif [ "\$BILLING_MODE" = "3" ]; then
+        TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]/{if(\$0~/[A-Z][a-z][a-z].*[0-9]/) v=\$4} END{print v}')
+    else
+        TRAFFIC_RAW=\$(echo "\$VSTAT_RAW" | awk '/[0-9]+\.[0-9]+/{last=\$NF} END{print last}')
+    fi
+    if [ -n "\$TRAFFIC_RAW" ] && [ -n "\$UNIT" ]; then
+        case "\$UNIT" in
+            *TiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1099511627776}") ;;
+            *GiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1073741824}") ;;
+            *MiB*) TRAFFIC_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$TRAFFIC_RAW * 1048576}") ;;
+        esac
+    fi
+fi
 BASELINE_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$BASELINE * 1073741824}")
 TRAFFIC_BYTES=\$(( TRAFFIC_BYTES + BASELINE_BYTES ))
 LIMIT_BYTES=\$(awk "BEGIN{printf \\"%.0f\\", \$LIMIT * 1073741824}")
