@@ -337,26 +337,24 @@ show_speed() {
     echo ""
     echo -e "\${C_GREEN}  ⚡ 实时流速 (2 秒采样)\${C_RESET}"
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
-    IFACE=\$(ip route 2>/dev/null | awk '/default/{print \$5; exit}')
+    IFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5}' | head -n1)
     if [ -z "\$IFACE" ]; then
-        IFACE=\$(awk -F: 'NR>2{n=\\\$1; gsub(/ /,\"\",n); if(n!=\"lo\"){print n; exit}}' /proc/net/dev)
+        IFACE=\$(ls /sys/class/net/ 2>/dev/null | grep -v lo | head -n 1)
     fi
     [ -z "\$IFACE" ] && IFACE="eth0"
-    if [ -f /proc/net/dev ]; then
-        R1=\$(awk -v iface="\$IFACE" '{split(\\\$0,a,/[: ]+/); if(a[1]==iface) print a[2]}' /proc/net/dev)
-        T1=\$(awk -v iface="\$IFACE" '{split(\\\$0,a,/[: ]+/); if(a[1]==iface) print a[10]}' /proc/net/dev)
-        [ -z "\$R1" ] && R1=0; [ -z "\$T1" ] && T1=0
+    if [ -d "/sys/class/net/\$IFACE/statistics" ]; then
         echo -e "  \${C_WHITE}采样中，请稍候...\${C_RESET}"
+        R1=\$(cat /sys/class/net/\$IFACE/statistics/rx_bytes 2>/dev/null || echo 0)
+        T1=\$(cat /sys/class/net/\$IFACE/statistics/tx_bytes 2>/dev/null || echo 0)
         sleep 2
-        R2=\$(awk -v iface="\$IFACE" '{split(\\\$0,a,/[: ]+/); if(a[1]==iface) print a[2]}' /proc/net/dev)
-        T2=\$(awk -v iface="\$IFACE" '{split(\\\$0,a,/[: ]+/); if(a[1]==iface) print a[10]}' /proc/net/dev)
-        [ -z "\$R2" ] && R2=0; [ -z "\$T2" ] && T2=0
+        R2=\$(cat /sys/class/net/\$IFACE/statistics/rx_bytes 2>/dev/null || echo 0)
+        T2=\$(cat /sys/class/net/\$IFACE/statistics/tx_bytes 2>/dev/null || echo 0)
         DL=\$(( (R2 - R1) / 1024 / 2 ))
         UL=\$(( (T2 - T1) / 1024 / 2 ))
         echo -e "  ⬇️  下载: \${C_GREEN}\${DL} KB/s\${C_RESET}"
         echo -e "  ⬆️  上传: \${C_YELLOW}\${UL} KB/s\${C_RESET}"
     else
-        echo -e "  \${C_RED}无法读取 /proc/net/dev\${C_RESET}"
+        echo -e "  \${C_RED}无法读取网卡 \${IFACE} 的流速数据\${C_RESET}"
     fi
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
 }
