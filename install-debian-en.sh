@@ -92,6 +92,8 @@ echo ""
 printf "Enter command name [default: lin-panel]: "
 read CMD
 CMD="${CMD:-lin-panel}"
+case "$CMD" in */*|*\ *) echo -e "  ${C_RED}⚠ Command name cannot contain / or spaces, using default lin-panel${C_RESET}"; CMD="lin-panel" ;;
+esac
 echo -e "  -> Command: ${C_YELLOW}${CMD}${C_RESET}"
 echo ""
 echo -e "${C_CYAN}└────────────────────────────────────┘${C_RESET}"
