@@ -320,13 +320,13 @@ show_conn() {
     fi
     echo -e "  \${C_WHITE}📡 活跃连接数: \${C_GREEN}\${CONN}\${C_RESET}"
     echo ""
-    echo -e "  \${C_WHITE}🔍 连接目标端口 Top 5:\${C_RESET}"
+    echo -e "  \${C_WHITE}🔍 本地监听端口 Top 5:\${C_RESET}"
     if command -v ss >/dev/null 2>&1; then
-        ss -tun state established 2>/dev/null | tail -n +2 | awk '{print \$5}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
+        ss -tun state established 2>/dev/null | tail -n +2 | awk '{print \$4}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
             echo -e "    \${C_YELLOW}\${CNT}\${C_RESET} 次  →  \${C_CYAN}\${PORT}\${C_RESET}"
         done
     elif command -v netstat >/dev/null 2>&1; then
-        netstat -an 2>/dev/null | grep ESTABLISHED | awk '{print \$5}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
+        netstat -an 2>/dev/null | grep ESTABLISHED | awk '{print \$4}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
             echo -e "    \${C_YELLOW}\${CNT}\${C_RESET} 次  →  \${C_CYAN}\${PORT}\${C_RESET}"
         done
     fi
@@ -500,11 +500,37 @@ echo -e "${C_GREEN}[6/7] 📱 正在配置 Telegram 流量推送...${C_RESET}"
 printf "  是否启用 Telegram 流量推送？[Y/n] [默认: N]: "
 read TG_ENABLE
 if [ "$TG_ENABLE" = "Y" ] || [ "$TG_ENABLE" = "y" ]; then
-    printf "  请输入 Telegram Bot Token: "
-    read TG_TOKEN
-    printf "  请输入 Telegram Chat ID: "
-    read TG_CHAT
+    TG_OK=0
+    while [ "$TG_OK" = "0" ]; do
+        printf "  请输入 Telegram Bot Token: "
+        read TG_TOKEN
+        printf "  请输入 Telegram Chat ID: "
+        read TG_CHAT
+        echo ""
+        echo -e "  ${C_WHITE}正在发送测试消息...${C_RESET}"
+        if curl -s -o /tmp/.tg_test.json -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" -d chat_id="${TG_CHAT}" -d text="🔔 LIN-Panel Test" -d parse_mode="HTML" 2>/dev/null; then
+            echo -e "  ${C_GREEN}✅ 测试消息发送成功！请检查您的 Telegram${C_RESET}"
+            TG_OK=1
+        else
+            TG_ERR=$(grep -o '"description":"[^"]*"' /tmp/.tg_test.json 2>/dev/null | cut -d'"' -f4)
+            echo -e "  ${C_RED}❌ 测试消息发送失败${C_RESET}"
+            [ -n "$TG_ERR" ] && echo -e "  ${C_RED}   原因: ${TG_ERR}${C_RESET}"
+            echo ""
+            printf "  [1] 重新填写 Token 和 Chat ID\n"
+            printf "  [2] 跳过推送\n"
+            printf "  [3] 仍然启用（不推荐）\n"
+            printf "  请选择 [1/2/3] [默认: 1]: "
+            read TG_RETRY
+            case "$TG_RETRY" in
+                2) TG_ENABLE="n"; TG_OK=1 ;;
+                3) TG_OK=1 ;;
+                *) echo "" ;;
+            esac
+        fi
+        rm -f /tmp/.tg_test.json
+    done
     echo ""
+    if [ "$TG_ENABLE" = "Y" ] || [ "$TG_ENABLE" = "y" ]; then
     printf "  请选择推送频率:\n"
     printf "    [1] 每日汇报\n"
     printf "    [2] 每周汇报\n"
@@ -576,6 +602,7 @@ TGEOF
     fi
     echo -e "  -> Telegram 推送已启用: ${C_YELLOW}${TG_LABEL}${C_RESET}"
     echo -e "  -> Bot: ${C_YELLOW}$(echo "$TG_TOKEN" | cut -c1-10)...${C_RESET}  Chat: ${C_YELLOW}${TG_CHAT}${C_RESET}"
+    fi
 else
     echo -e "  -> Telegram 推送已跳过"
 fi

@@ -320,13 +320,13 @@ show_conn() {
     fi
     echo -e "  \${C_WHITE}📡 Active: \${C_GREEN}\${CONN}\${C_RESET}"
     echo ""
-    echo -e "  \${C_WHITE}🔍 Top 5 Ports:\${C_RESET}"
+    echo -e "  \${C_WHITE}🔍 Local Ports Top 5:\${C_RESET}"
     if command -v ss >/dev/null 2>&1; then
-        ss -tun state established 2>/dev/null | tail -n +2 | awk '{print \$5}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
+        ss -tun state established 2>/dev/null | tail -n +2 | awk '{print \$4}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
             echo -e "    \${C_YELLOW}\${CNT}\${C_RESET} 次  →  \${C_CYAN}\${PORT}\${C_RESET}"
         done
     elif command -v netstat >/dev/null 2>&1; then
-        netstat -an 2>/dev/null | grep ESTABLISHED | awk '{print \$5}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
+        netstat -an 2>/dev/null | grep ESTABLISHED | awk '{print \$4}' | grep -oE ':[0-9]+' | sort | uniq -c | sort -rn | head -5 | while read CNT PORT; do
             echo -e "    \${C_YELLOW}\${CNT}\${C_RESET} 次  →  \${C_CYAN}\${PORT}\${C_RESET}"
         done
     fi
@@ -500,11 +500,37 @@ echo -e "${C_GREEN}[6/7] 📱 Telegram alerts...${C_RESET}"
 printf "  Enable Telegram alerts？[Y/n] [default: N]: "
 read TG_ENABLE
 if [ "$TG_ENABLE" = "Y" ] || [ "$TG_ENABLE" = "y" ]; then
-    printf "  Bot Token: "
-    read TG_TOKEN
-    printf "  Chat ID: "
-    read TG_CHAT
+    TG_OK=0
+    while [ "$TG_OK" = "0" ]; do
+        printf "  Bot Token: "
+        read TG_TOKEN
+        printf "  Chat ID: "
+        read TG_CHAT
+        echo ""
+        echo -e "  ${C_WHITE}Sending test message...${C_RESET}"
+        if curl -s -o /tmp/.tg_test.json -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" -d chat_id="${TG_CHAT}" -d text="🔔 LIN-Panel Test" -d parse_mode="HTML" 2>/dev/null; then
+            echo -e "  ${C_GREEN}✅ Test sent! Check your Telegram${C_RESET}"
+            TG_OK=1
+        else
+            TG_ERR=$(grep -o '"description":"[^"]*"' /tmp/.tg_test.json 2>/dev/null | cut -d'"' -f4)
+            echo -e "  ${C_RED}❌ Test failed${C_RESET}"
+            [ -n "$TG_ERR" ] && echo -e "  ${C_RED}   Reason: ${TG_ERR}${C_RESET}"
+            echo ""
+            printf "  [1] Re-enter Token and Chat ID\n"
+            printf "  [2] Skip push\n"
+            printf "  [3] Force enable (not recommended)\n"
+            printf "  Select [1/2/3] [default: 1]: "
+            read TG_RETRY
+            case "$TG_RETRY" in
+                2) TG_ENABLE="n"; TG_OK=1 ;;
+                3) TG_OK=1 ;;
+                *) echo "" ;;
+            esac
+        fi
+        rm -f /tmp/.tg_test.json
+    done
     echo ""
+    if [ "$TG_ENABLE" = "Y" ] || [ "$TG_ENABLE" = "y" ]; then
     printf "  Frequency:\n"
     printf "    [1] Daily\n"
     printf "    [2] Weekly\n"
@@ -576,6 +602,7 @@ TGEOF
     fi
     echo -e "  -> Telegram enabled: ${C_YELLOW}${TG_LABEL}${C_RESET}"
     echo -e "  -> Bot: ${C_YELLOW}$(echo "$TG_TOKEN" | cut -c1-10)...${C_RESET}  Chat: ${C_YELLOW}${TG_CHAT}${C_RESET}"
+    fi
 else
     echo -e "  -> Telegram skipped"
 fi
