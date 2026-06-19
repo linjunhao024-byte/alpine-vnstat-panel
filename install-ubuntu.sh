@@ -15,7 +15,7 @@ echo '  / /  / / /    /  ______ / /_/ / __ `/ __ \/ _ \/ /'
 echo ' / /__/ / / /|  / /_____// ____/ /_/ / / / /  __/ /'
 echo '/____/___/_/ |_/        /_/    \__,_/_/ /_/\___/_/'
 echo -e "${C_RESET}"
-echo -e "${C_YELLOW}           极简流量监控伪面板 · v1.0.3${C_RESET}"
+echo -e "${C_YELLOW}           极简流量监控伪面板 · v1.0.4${C_RESET}"
 echo ""
 echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
 echo -e "${C_YELLOW}│              欢迎使用 LIN-PANEL 一键安装脚本                       │${C_RESET}"
@@ -179,7 +179,11 @@ ALERT=""
 USED_GB=0
 BILLING_LABEL="双向计费"
 
-VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+
+VSTAT_RAW=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null)
 TRAFFIC_BYTES=0
 if [ -n "\$VSTAT_RAW" ]; then
     UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
@@ -261,7 +265,7 @@ if [ -n "\$CDOWN" ]; then
 fi
 echo -e "\${C_CYAN}────────────────────────────────────────────────────────────────\${C_RESET}"
 echo ""
-VSTAT_M=\$(vnstat -m 2>/dev/null | sed \\
+VSTAT_M=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
     -e 's/rx/入站(RX)/g' \\
     -e 's/tx/出站(TX)/g' \\
     -e 's/total/合计(Total)/g' \\
@@ -274,7 +278,7 @@ printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_M"
 
 echo ""
 echo -e "\${C_GREEN}  📅 每日流量明细\${C_RESET}"
-VSTAT_D=\$(vnstat -d 2>/dev/null | sed \\
+VSTAT_D=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
     -e 's/rx/入站(RX)/g' \\
     -e 's/tx/出站(TX)/g' \\
     -e 's/total/合计(Total)/g' \\
@@ -289,7 +293,7 @@ show_trend() {
     echo ""
     echo -e "\${C_GREEN}  📊 近 7 天流量趋势\${C_RESET}"
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
-    TREND=\$(vnstat -d 2>/dev/null | awk '/[0-9]+\\.[0-9]+/{d=\\\$1; v=\\\$NF; if(d~/^[0-9]/) print d" "v}' | tail -7)
+    TREND=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | awk '/[0-9]+\\.[0-9]+/{d=\\\$1; v=\\\$NF; if(d~/^[0-9]/) print d" "v}' | tail -7)
     if [ -z "\$TREND" ]; then
         echo -e "  \${C_WHITE}暂无历史数据\${C_RESET}"
     else
@@ -358,6 +362,20 @@ show_speed() {
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
 }
 
+do_manual_push() {
+    echo ""
+    echo -e "\${C_GREEN}  📤 手动推送流量报告\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    if [ -f /root/traffic_check.sh ]; then
+        echo -e "  \${C_WHITE}正在推送...\${C_RESET}"
+        /root/traffic_check.sh
+        echo -e "  \${C_GREEN}✅ 推送完成，请检查 Telegram\${C_RESET}"
+    else
+        echo -e "  \${C_RED}❌ 推送脚本不存在，请先配置 Telegram 推送\${C_RESET}"
+    fi
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+}
+
 do_uninstall() {
     echo ""
     echo -e "\${C_RED}  ⚠️  即将卸载 LIN-Panel 及所有相关文件\${C_RESET}"
@@ -417,7 +435,8 @@ show_menu() {
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[2] 近7天趋势    \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] 连接概览     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] 实时流速     \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[5] 一键卸载     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[5] 手动推送     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[6] 一键卸载     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[0] 退出         \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  └──────────────────┘\${C_RESET}"
 }
@@ -433,7 +452,8 @@ while true; do
         2) show_trend ;;
         3) show_conn ;;
         4) show_speed ;;
-        5) do_uninstall ;;
+        5) do_manual_push ;;
+        6) do_uninstall ;;
         0|"") echo -e "\n  \${C_GREEN}👋 已退出面板\${C_RESET}"; exit 0 ;;
         *) echo -e "  \${C_RED}无效选项，请重新输入\${C_RESET}" ;;
     esac
@@ -481,7 +501,7 @@ echo -e "${C_GREEN}[5/7] 📊 正在配置每日流量记录与自动清理...${
 
 EXISTING_CRON=$(crontab -l 2>/dev/null || true)
 
-CRON_TREND='59 23 * * * echo "$(date +%Y-%m-%d) $(vnstat -m | awk '\''/total/{print $NF}'\'')" >> /root/traffic_history.log && tail -30 /root/traffic_history.log > /tmp/.tl && mv /tmp/.tl /root/traffic_history.log'
+CRON_TREND='59 23 * * * MAIN_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF=$(ip route 2>/dev/null | grep default | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF="eth0"; echo "$(date +%Y-%m-%d) $(vnstat -m -i "$MAIN_IF" | awk '"'"'/total/{print $NF}'"'"')" >> /root/traffic_history.log && tail -30 /root/traffic_history.log > /tmp/.tl && mv /tmp/.tl /root/traffic_history.log'
 CRON_RESET="0 0 * * * /root/traffic_reset_check.sh"
 
 EXISTING_CRON=$(echo "$EXISTING_CRON" | grep -v 'traffic_history\.log')
@@ -594,7 +614,11 @@ BASELINE=${BASELINE}
 TG_TOKEN="${TG_TOKEN}"
 TG_CHAT="${TG_CHAT}"
 
-VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+
+VSTAT_RAW=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null)
 TRAFFIC_BYTES=0
 if [ -n "\$VSTAT_RAW" ]; then
     UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
@@ -658,7 +682,11 @@ BASELINE=${BASELINE}
 TG_TOKEN="${TG_TOKEN}"
 TG_CHAT="${TG_CHAT}"
 
-VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+
+VSTAT_RAW=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null)
 TRAFFIC_BYTES=0
 if [ -n "\$VSTAT_RAW" ]; then
     UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')

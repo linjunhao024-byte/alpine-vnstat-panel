@@ -15,7 +15,7 @@ echo '  / /  / / /    /  ______ / /_/ / __ `/ __ \/ _ \/ /'
 echo ' / /__/ / / /|  / /_____// ____/ /_/ / / / /  __/ /'
 echo '/____/___/_/ |_/        /_/    \__,_/_/ /_/\___/_/'
 echo -e "${C_RESET}"
-echo -e "${C_YELLOW}           Minimalist Traffic Panel · v1.0.3${C_RESET}"
+echo -e "${C_YELLOW}           Minimalist Traffic Panel · v1.0.4${C_RESET}"
 echo ""
 echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
 echo -e "${C_YELLOW}│              Welcome to LIN-PANEL Installer                       │${C_RESET}"
@@ -179,7 +179,11 @@ ALERT=""
 USED_GB=0
 BILLING_LABEL="Bidirectional"
 
-VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+
+VSTAT_RAW=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null)
 TRAFFIC_BYTES=0
 if [ -n "\$VSTAT_RAW" ]; then
     UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
@@ -261,19 +265,19 @@ if [ -n "\$CDOWN" ]; then
 fi
 echo -e "\${C_CYAN}────────────────────────────────────────────────────────────────\${C_RESET}"
 echo ""
-VSTAT_M=\$(vnstat -m 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
+VSTAT_M=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
 printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_M"
 
 echo ""
 echo -e "\${C_GREEN}  📅 Daily Details\${C_RESET}"
-VSTAT_D=\$(vnstat -d 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
+VSTAT_D=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
 printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_D"
 
 show_trend() {
     echo ""
     echo -e "\${C_GREEN}  📊 7-Day Trend\${C_RESET}"
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
-    TREND=\$(vnstat -d 2>/dev/null | awk '/[0-9]+\\.[0-9]+/{d=\\\$1; v=\\\$NF; if(d~/^[0-9]/) print d" "v}' | tail -7)
+    TREND=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | awk '/[0-9]+\\.[0-9]+/{d=\\\$1; v=\\\$NF; if(d~/^[0-9]/) print d" "v}' | tail -7)
     if [ -z "\$TREND" ]; then
         echo -e "  \${C_WHITE}No history data\${C_RESET}"
     else
@@ -342,6 +346,20 @@ show_speed() {
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
 }
 
+do_manual_push() {
+    echo ""
+    echo -e "\${C_GREEN}  📤 Manual Push Traffic Report\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    if [ -f /root/traffic_check.sh ]; then
+        echo -e "  \${C_WHITE}Pushing...\${C_RESET}"
+        /root/traffic_check.sh
+        echo -e "  \${C_GREEN}✅ Push complete, check your Telegram\${C_RESET}"
+    else
+        echo -e "  \${C_RED}❌ Push script not found, please configure Telegram first\${C_RESET}"
+    fi
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+}
+
 do_uninstall() {
     echo ""
     echo -e "\${C_RED}  ⚠️  Uninstall LIN-Panel and all files\${C_RESET}"
@@ -401,7 +419,8 @@ show_menu() {
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[2] 7-Day Trend     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] Connections     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] Speed     \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[5] Uninstall     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[5] Push Now     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[6] Uninstall     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[0] Exit         \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  └──────────────────┘\${C_RESET}"
 }
@@ -417,7 +436,8 @@ while true; do
         2) show_trend ;;
         3) show_conn ;;
         4) show_speed ;;
-        5) do_uninstall ;;
+        5) do_manual_push ;;
+        6) do_uninstall ;;
         0|"") echo -e "\n  \${C_GREEN}👋 Panel exited\${C_RESET}"; exit 0 ;;
         *) echo -e "  \${C_RED}Invalid option\${C_RESET}" ;;
     esac
@@ -465,7 +485,7 @@ echo -e "${C_GREEN}[5/7] 📊 Daily logging...${C_RESET}"
 
 EXISTING_CRON=$(crontab -l 2>/dev/null || true)
 
-CRON_TREND='59 23 * * * echo "$(date +%Y-%m-%d) $(vnstat -m | awk '\''/total/{print $NF}'\'')" >> /root/traffic_history.log && tail -30 /root/traffic_history.log > /tmp/.tl && mv /tmp/.tl /root/traffic_history.log'
+CRON_TREND='59 23 * * * MAIN_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF=$(ip route 2>/dev/null | grep default | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF="eth0"; echo "$(date +%Y-%m-%d) $(vnstat -m -i "$MAIN_IF" | awk '"'"'/total/{print $NF}'"'"')" >> /root/traffic_history.log && tail -30 /root/traffic_history.log > /tmp/.tl && mv /tmp/.tl /root/traffic_history.log'
 CRON_RESET="0 0 * * * /root/traffic_reset_check.sh"
 
 EXISTING_CRON=$(echo "$EXISTING_CRON" | grep -v 'traffic_history\.log')
@@ -578,7 +598,11 @@ BASELINE=${BASELINE}
 TG_TOKEN="${TG_TOKEN}"
 TG_CHAT="${TG_CHAT}"
 
-VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+
+VSTAT_RAW=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null)
 TRAFFIC_BYTES=0
 if [ -n "\$VSTAT_RAW" ]; then
     UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
@@ -642,7 +666,11 @@ BASELINE=${BASELINE}
 TG_TOKEN="${TG_TOKEN}"
 TG_CHAT="${TG_CHAT}"
 
-VSTAT_RAW=\$(vnstat -m 2>/dev/null)
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+
+VSTAT_RAW=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null)
 TRAFFIC_BYTES=0
 if [ -n "\$VSTAT_RAW" ]; then
     UNIT=\$(echo "\$VSTAT_RAW" | awk '/GiB|TiB|MiB/{print \$3; exit}')
