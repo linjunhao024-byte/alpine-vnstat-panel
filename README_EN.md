@@ -6,7 +6,7 @@
 
 # 📊 LIN-Panel
 
-**Minimalist Traffic Monitor Pseudo-Panel · v1.0.4**
+**Minimalist Traffic Monitor Pseudo-Panel · v1.0.5**
 
 > No ports · No daemons · No web frameworks · Everything runs inside SSH
 
@@ -47,11 +47,13 @@ You have a VPS with a monthly traffic cap. Your biggest fear: **silently exceedi
 | 📊 **Data Display** | Real-time traffic · Reset countdown · Daily details · Localized vnstat tables |
 | 🔔 **Smart Alerts** | 🟢 <70% · 🟡 70-90% · 🔴 >90% · Auto-calculated percentage |
 | 📈 **Trend Analysis** | 7-day bar chart · Daily snapshots · Auto-trim 30 days |
-| 🌐 **Network Diag** | Active connections · Local ports Top 5 · Real-time speed |
+| 🌐 **Network Diag** | Active connections · Local ports Top 5 · Real-time speed · Dynamic NIC lock |
 | 🔐 **Billing Modes** | Bidirectional / Inbound / Outbound · Choose at install |
 | 🌐 **Timezone** | 9 popular timezones · CN/HK/JP/SG/US/UK/EU/UTC |
-| 📱 **Telegram** | Traffic reports · Daily/weekly/monthly · Test message verify |
+| 📱 **Telegram** | Traffic reports · Daily/weekly/monthly · Custom push time · Test message · Manual push |
 | ⌨️ **Interactive** | Custom command · Numbered menu · One-click uninstall · Idempotent |
+| 🎨 **TUI Interface** | htop-style solid background header · System status indicators · Unicode box drawing |
+| ⚡ **System Probe** | Uptime · Load average · vnstat/Cron/Telegram status detection |
 
 ---
 
@@ -176,24 +178,35 @@ lin-panel              # or your custom name
 ## 🖼️ Preview
 
 ```
-╭──────────────────────────────────────────────────────────────╮
-│                    📊 LIN-PANEL Traffic Monitor                    │
-╰──────────────────────────────────────────────────────────────╯
+██████████████████████████████████████████████████████████████████████████
+  📊 LIN-PANEL v1.0.5                            UP: 24 Days | Load: 0.05
+██████████████████████████████████████████████████████████████████████████
 
-  📈 Current Traffic ─ Bidirectional Limit: 350GB
-     ✅ Used: 83.90 / 350 GB (24.0%)       ← 🟢 Normal
-     ⚠️ Used: 248.50 / 350 GB (71.0%)      ← 🟡 Warning
-     🚨 Used: 319.20 / 350 GB (91.2%)      ← 🔴 Critical
-     ⏰ Reset in: 13d 7h 22m
+╔════════════════════════════════════════════════════════════════╗
+║ 💵 Current Traffic ─ Bidirectional Limit: 350GB                ║
+║ ✅ Used: 83.90 / 350 GB (24.0%)                                ║
+║ ⏱️  Reset in: 13d 7h 22m                                       ║
+╚════════════════════════════════════════════════════════════════╝
 
-  ┌──── Menu ────────┐
-  │  [1] Refresh      │
-  │  [2] 7-Day Trend  │
-  │  [3] Connections  │
-  │  [4] Speed Test   │
-  │  [5] Uninstall    │
-  │  [0] Exit         │
-  └──────────────────┘
+  [ vnstat native output area ]
+
+╔════════════════════════════════════════════════════════════════╗
+║                      ⚙️  System Status                          ║
+╠════════════════════════════════════════════════════════════════╣
+║ vnstat state:     🟢 Running                                   ║
+║ Cron scheduler:   🟢 Active                                    ║
+║ Telegram Push:    🟢 Enabled                                   ║
+╚════════════════════════════════════════════════════════════════╝
+
+┌──── Menu ────────┐
+│  [1] Refresh      │
+│  [2] 7-Day Trend  │
+│  [3] Connections  │
+│  [4] Speed        │
+│  [5] Push Now     │
+│  [6] Uninstall    │
+│  [0] Exit         │
+└──────────────────┘
 ```
 
 ---

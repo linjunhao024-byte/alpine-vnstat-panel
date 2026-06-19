@@ -15,7 +15,7 @@ echo '  / /  / / /    /  ______ / /_/ / __ `/ __ \/ _ \/ /'
 echo ' / /__/ / / /|  / /_____// ____/ /_/ / / / /  __/ /'
 echo '/____/___/_/ |_/        /_/    \__,_/_/ /_/\___/_/'
 echo -e "${C_RESET}"
-echo -e "${C_YELLOW}           极简流量监控伪面板 · v1.0.4${C_RESET}"
+echo -e "${C_YELLOW}           极简流量监控伪面板 · v1.0.5${C_RESET}"
 echo ""
 echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
 echo -e "${C_YELLOW}│              欢迎使用 LIN-PANEL 一键安装脚本                       │${C_RESET}"
@@ -245,25 +245,33 @@ if [ -n "\$NEXT_S" ] && [ "\$NEXT_S" -gt "\$NOW_S" ]; then
 fi
 
 clear
-echo -e "\${C_CYAN}╭──────────────────────────────────────────────────────────────╮\${C_RESET}"
-echo -e "\${C_YELLOW}│              📊 LIN-PANEL 流量监控面板 (汉化版)              │\${C_RESET}"
-echo -e "\${C_CYAN}╰──────────────────────────────────────────────────────────────╯\${C_RESET}"
+COLS=\$(tput cols 2>/dev/null || echo 80)
+UPTIME_STR=\$(uptime -p 2>/dev/null | sed 's/up //' || uptime 2>/dev/null | awk -F',' '{print \$1}' | awk '{\$1=""; print \$0}' | sed 's/^ //')
+LOAD_STR=\$(awk '{printf "%.2f", \$1}' /proc/loadavg 2>/dev/null || uptime 2>/dev/null | awk -F'load average:' '{print \$2}' | awk -F',' '{gsub(/^ /,"",\$1); print \$1}')
+LEFT=" 📊 LIN-PANEL v1.0.5 "
+RIGHT=" UP: \${UPTIME_STR} | Load: \${LOAD_STR} "
+LEFT_LEN=\${#LEFT}
+RIGHT_LEN=\${#RIGHT}
+PAD=\$(( COLS - LEFT_LEN - RIGHT_LEN ))
+[ "\$PAD" -lt 1 ] && PAD=1
+printf "\033[46;30m%s%*s%s\033[0m\n" "\$LEFT" "\$PAD" "" "\$RIGHT"
 echo ""
-echo -e "\${C_GREEN}  📈 当期流量总账 ─ \${BILLING_LABEL}上限: ${LIMIT}GB\${C_RESET}"
+echo -e "\${C_CYAN}╔════════════════════════════════════════════════════════════════╗\${C_RESET}"
+echo -e "\${C_CYAN}║\${C_RESET} \${C_GREEN}💵 当期流量总账 ─ \${BILLING_LABEL}上限: ${LIMIT}GB\${C_RESET}\${C_CYAN}║\${C_RESET}"
 if [ -n "\$PCT" ]; then
     CLR="\${C_GREEN}"
     [ "\$ALERT" = "yellow" ] && CLR="\${C_YELLOW}"
     [ "\$ALERT" = "red" ] && CLR="\${C_RED}"
     ICON="✅"; [ "\$ALERT" = "yellow" ] && ICON="⚠️"
     [ "\$ALERT" = "red" ] && ICON="🚨"
-    echo -e "     \${CLR}\${ICON} 已用: \${USED_GB} / ${LIMIT} GB (\${PCT}%)\${C_RESET}"
+    echo -e "\${C_CYAN}║\${C_RESET} \${CLR}\${ICON} 已用: \${USED_GB} / ${LIMIT} GB (\${PCT}%)\${C_RESET}\${C_CYAN}║\${C_RESET}"
 else
-    echo -e "     \${C_WHITE}📊 已用: \${USED_GB} / ${LIMIT} GB\${C_RESET}"
+    echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}📊 已用: \${USED_GB} / ${LIMIT} GB\${C_RESET}\${C_CYAN}║\${C_RESET}"
 fi
 if [ -n "\$CDOWN" ]; then
-    echo -e "     ⏰ 距离重置: \${C_YELLOW}\${CDOWN}\${C_RESET}"
+    echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}⏱️  距离重置: \${C_YELLOW}\${CDOWN}\${C_RESET}\${C_CYAN}║\${C_RESET}"
 fi
-echo -e "\${C_CYAN}────────────────────────────────────────────────────────────────\${C_RESET}"
+echo -e "\${C_CYAN}╚════════════════════════════════════════════════════════════════╝\${C_RESET}"
 echo ""
 VSTAT_M=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
     -e 's/rx/入站(RX)/g' \\
@@ -288,6 +296,37 @@ VSTAT_D=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
     -e 's/+/┼/g' \\
     -e 's/|/│/g')
 printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_D"
+
+echo ""
+echo -e "\${C_CYAN}╔════════════════════════════════════════════════════════════════╗\${C_RESET}"
+echo -e "\${C_CYAN}║\${C_RESET}\${C_YELLOW}                      ⚙️  系统状态                              \${C_RESET}\${C_CYAN}║\${C_RESET}"
+echo -e "\${C_CYAN}╠════════════════════════════════════════════════════════════════╣\${C_RESET}"
+
+VNSTAT_STATUS="Stopped"
+VNSTAT_CLR="\${C_RED}"
+if systemctl is-active --quiet vnstat 2>/dev/null || rc-service vnstatd status 2>/dev/null | grep -q "started"; then
+    VNSTAT_STATUS="Running"
+    VNSTAT_CLR="\${C_GREEN}"
+fi
+
+CRON_STATUS="Inactive"
+CRON_CLR="\${C_RED}"
+if systemctl is-active --quiet cron 2>/dev/null || systemctl is-active --quiet crond 2>/dev/null || rc-service crond status 2>/dev/null | grep -q "started"; then
+    CRON_STATUS="Active"
+    CRON_CLR="\${C_GREEN}"
+fi
+
+TG_STATUS="Disabled"
+TG_CLR="\${C_WHITE}"
+if [ -f /root/traffic_check.sh ]; then
+    TG_STATUS="Enabled"
+    TG_CLR="\${C_GREEN}"
+fi
+
+echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}vnstat state:\${C_RESET}     \${VNSTAT_CLR}\${VNSTAT_STATUS}\${C_RESET}\${C_CYAN}║\${C_RESET}"
+echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}Cron scheduler:\${C_RESET}   \${CRON_CLR}\${CRON_STATUS}\${C_RESET}\${C_CYAN}║\${C_RESET}"
+echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}Telegram Push:\${C_RESET}    \${TG_CLR}\${TG_STATUS}\${C_RESET}\${C_CYAN}║\${C_RESET}"
+echo -e "\${C_CYAN}╚════════════════════════════════════════════════════════════════╝\${C_RESET}"
 
 show_trend() {
     echo ""
