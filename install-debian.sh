@@ -420,13 +420,20 @@ do_modify_spike() {
     echo ""
     echo -e "\${C_GREEN}  ⚡ 修改短时激增告警阈值\${C_RESET}"
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    echo -e "  \${C_WHITE}说明: 系统每 10 分钟自动检测网卡流量增量\${C_RESET}"
+    echo -e "  \${C_WHITE}若 10 分钟内激增超过阈值，将通过 Telegram 推送告警\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
     if [ ! -f /root/traffic_spike_check.sh ]; then
         echo -e "  \${C_RED}❌ 激增告警脚本不存在\${C_RESET}"
         echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
         return
     fi
     CUR=\$(grep '^SPIKE_LIMIT=' /root/traffic_spike_check.sh | head -1 | cut -d= -f2)
-    echo -e "  \${C_WHITE}当前阈值: \${C_YELLOW}\${CUR} GB/10分钟\${C_RESET}"
+    if [ "\$CUR" = "0" ]; then
+        echo -e "  \${C_WHITE}当前状态: \${C_RED}已禁用\${C_RESET}"
+    else
+        echo -e "  \${C_WHITE}当前阈值: \${C_YELLOW}\${CUR} GB/10分钟\${C_RESET}"
+    fi
     printf "  请输入新阈值(GB/10分钟) [输入 0 禁用]: "
     read NEW_SPIKE
     if [ -z "\$NEW_SPIKE" ]; then
@@ -503,8 +510,8 @@ show_menu() {
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] 连接概览     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] 实时流速     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[5] 手动推送     \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[7] 激增告警阈值 \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[6] 一键卸载     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[6] 激增告警阈值 \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[7] 一键卸载     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[0] 退出         \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  └──────────────────┘\${C_RESET}"
 }
@@ -521,8 +528,8 @@ while true; do
         3) show_conn ;;
         4) show_speed ;;
         5) do_manual_push ;;
-        7) do_modify_spike ;;
-        6) do_uninstall ;;
+        6) do_modify_spike ;;
+        7) do_uninstall ;;
         0|"") echo -e "\n  \${C_GREEN}👋 已退出面板\${C_RESET}"; exit 0 ;;
         *) echo -e "  \${C_RED}无效选项，请重新输入\${C_RESET}" ;;
     esac
@@ -827,6 +834,9 @@ if [ "$SPIKE_LIMIT" = "0" ]; then
     echo -e "  -> 短时激增告警: ${C_RED}已禁用${C_RESET}"
 else
     echo -e "  -> 短时激增告警阈值: ${C_YELLOW}${SPIKE_LIMIT}GB/10分钟${C_RESET}"
+    echo -e "  ${C_WHITE}工作原理: 每 10 分钟检测一次网卡流量增量${C_RESET}"
+    echo -e "  ${C_WHITE}若 10 分钟内流量激增超过阈值，将通过 Telegram 推送告警${C_RESET}"
+    echo -e "  ${C_WHITE}后续可在面板菜单 [6] 中随时修改阈值或禁用${C_RESET}"
 fi
 
 cat << SPIKEEOF > /root/traffic_spike_check.sh

@@ -398,13 +398,20 @@ do_modify_spike() {
     echo ""
     echo -e "\${C_GREEN}  ⚡ Modify Spike Alert Threshold\${C_RESET}"
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    echo -e "  \${C_WHITE}How it works: Checks traffic delta every 10 minutes\${C_RESET}"
+    echo -e "  \${C_WHITE}If spike exceeds threshold, sends Telegram alert\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
     if [ ! -f /root/traffic_spike_check.sh ]; then
         echo -e "  \${C_RED}❌ Spike alert script not found\${C_RESET}"
         echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
         return
     fi
     CUR=\$(grep '^SPIKE_LIMIT=' /root/traffic_spike_check.sh | head -1 | cut -d= -f2)
-    echo -e "  \${C_WHITE}Current threshold: \${C_YELLOW}\${CUR} GB/10mins\${C_RESET}"
+    if [ "\$CUR" = "0" ]; then
+        echo -e "  \${C_WHITE}Status: \${C_RED}Disabled\${C_RESET}"
+    else
+        echo -e "  \${C_WHITE}Current threshold: \${C_YELLOW}\${CUR} GB/10mins\${C_RESET}"
+    fi
     printf "  Enter new threshold (GB/10mins) [0 to disable]: "
     read NEW_SPIKE
     if [ -z "\$NEW_SPIKE" ]; then
@@ -480,9 +487,9 @@ show_menu() {
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[2] 7-Day Trend     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] Connections     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] Speed     \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[5] Push Now     \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[7] Spike Alert   \${C_CYAN}│\${C_RESET}"
-    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[6] Uninstall     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[5] Push Now      \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[6] Spike Alert   \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[7] Uninstall     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[0] Exit         \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  └──────────────────┘\${C_RESET}"
 }
@@ -499,8 +506,8 @@ while true; do
         3) show_conn ;;
         4) show_speed ;;
         5) do_manual_push ;;
-        7) do_modify_spike ;;
-        6) do_uninstall ;;
+        6) do_modify_spike ;;
+        7) do_uninstall ;;
         0|"") echo -e "\n  \${C_GREEN}👋 Panel exited\${C_RESET}"; exit 0 ;;
         *) echo -e "  \${C_RED}Invalid option\${C_RESET}" ;;
     esac
@@ -805,6 +812,9 @@ if [ "$SPIKE_LIMIT" = "0" ]; then
     echo -e "  -> Short-term spike alert: ${C_RED}Disabled${C_RESET}"
 else
     echo -e "  -> Spike alert threshold: ${C_YELLOW}${SPIKE_LIMIT}GB/10mins${C_RESET}"
+    echo -e "  ${C_WHITE}How it works: Checks traffic delta every 10 minutes${C_RESET}"
+    echo -e "  ${C_WHITE}If spike exceeds threshold, sends Telegram alert${C_RESET}"
+    echo -e "  ${C_WHITE}You can modify threshold anytime from panel menu [6]${C_RESET}"
 fi
 
 cat << SPIKEEOF > /root/traffic_spike_check.sh
