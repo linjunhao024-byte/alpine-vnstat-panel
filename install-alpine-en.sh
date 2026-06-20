@@ -85,7 +85,7 @@ echo ""
 printf "Enter command name [default: lin-panel]: "
 read CMD
 CMD="${CMD:-lin-panel}"
-case "$CMD" in */*|*\ *|*[;\&\|\`\$\<\>\(\)]*) echo -e "  ${C_RED}⚠ Command name contains illegal characters, using default lin-panel${C_RESET}"; CMD="lin-panel" ;;
+case "$CMD" in */*|*\ *|*[\<\>\&\|\;\$\`\!]*) echo -e "  ${C_RED}⚠ Command name contains illegal characters, using default lin-panel${C_RESET}"; CMD="lin-panel" ;;
 esac
 echo -e "  -> Command: ${C_YELLOW}${CMD}${C_RESET}"
 echo ""

@@ -85,7 +85,7 @@ echo ""
 printf "请输入您的快捷命令名称 [默认: lin-panel]: "
 read CMD
 CMD="${CMD:-lin-panel}"
-case "$CMD" in */*|*\ *|*[;\&\|\`\$\<\>\(\)]*) echo -e "  ${C_RED}⚠ 命令名包含非法字符，已使用默认值 lin-panel${C_RESET}"; CMD="lin-panel" ;;
+case "$CMD" in */*|*\ *|*[\<\>\&\|\;\$\`\!]*) echo -e "  ${C_RED}⚠ 命令名包含非法字符，已使用默认值 lin-panel${C_RESET}"; CMD="lin-panel" ;;
 esac
 echo -e "  -> 快捷命令设置为: ${C_YELLOW}${CMD}${C_RESET}"
 echo ""
