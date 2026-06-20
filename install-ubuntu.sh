@@ -269,10 +269,13 @@ fi
 echo -e "\${C_CYAN}╚════════════════════════════════════════════════════════════════╝\${C_RESET}"
 echo ""
 VSTAT_M=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
+    -e "s/\$MAIN_INTERFACE/网卡/g" \\
     -e 's/rx/入站(RX)/g' \\
     -e 's/tx/出站(TX)/g' \\
     -e 's/total/合计(Total)/g' \\
     -e 's/estimated/预计/g' \\
+    -e 's/avg. rate/平均流速/g' \\
+    -e 's/monthly/按月统计/g' \\
     -e 's/month/月份/g' \\
     -e 's/-/─/g' \\
     -e 's/+/┼/g' \\
@@ -282,10 +285,13 @@ printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_M"
 echo ""
 echo -e "\${C_GREEN}  📅 每日流量明细\${C_RESET}"
 VSTAT_D=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
+    -e "s/\$MAIN_INTERFACE/网卡/g" \\
     -e 's/rx/入站(RX)/g' \\
     -e 's/tx/出站(TX)/g' \\
     -e 's/total/合计(Total)/g' \\
     -e 's/estimated/预计/g' \\
+    -e 's/avg. rate/平均流速/g' \\
+    -e 's/daily/按日统计/g' \\
     -e 's/day/日期/g' \\
     -e 's/-/─/g' \\
     -e 's/+/┼/g' \\
@@ -410,6 +416,32 @@ do_manual_push() {
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
 }
 
+do_modify_spike() {
+    echo ""
+    echo -e "\${C_GREEN}  ⚡ 修改短时激增告警阈值\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    if [ ! -f /root/traffic_spike_check.sh ]; then
+        echo -e "  \${C_RED}❌ 激增告警脚本不存在\${C_RESET}"
+        echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+        return
+    fi
+    CUR=\$(grep '^SPIKE_LIMIT=' /root/traffic_spike_check.sh | head -1 | cut -d= -f2)
+    echo -e "  \${C_WHITE}当前阈值: \${C_YELLOW}\${CUR} GB/10分钟\${C_RESET}"
+    printf "  请输入新阈值(GB/10分钟) [输入 0 禁用]: "
+    read NEW_SPIKE
+    if [ -z "\$NEW_SPIKE" ]; then
+        echo -e "  \${C_YELLOW}已取消\${C_RESET}"
+    else
+        sed -i "s/^SPIKE_LIMIT=.*/SPIKE_LIMIT=\${NEW_SPIKE}/" /root/traffic_spike_check.sh
+        if [ "\$NEW_SPIKE" = "0" ]; then
+            echo -e "  \${C_RED}短时激增告警已禁用\${C_RESET}"
+        else
+            echo -e "  \${C_GREEN}✅ 阈值已修改为: \${C_YELLOW}\${NEW_SPIKE} GB/10分钟\${C_RESET}"
+        fi
+    fi
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+}
+
 do_uninstall() {
     echo ""
     echo -e "\${C_RED}  ⚠️  即将卸载 LIN-Panel 及所有相关文件\${C_RESET}"
@@ -471,6 +503,7 @@ show_menu() {
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] 连接概览     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] 实时流速     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[5] 手动推送     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[7] 激增告警阈值 \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[6] 一键卸载     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[0] 退出         \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  └──────────────────┘\${C_RESET}"
@@ -488,6 +521,7 @@ while true; do
         3) show_conn ;;
         4) show_speed ;;
         5) do_manual_push ;;
+        7) do_modify_spike ;;
         6) do_uninstall ;;
         0|"") echo -e "\n  \${C_GREEN}👋 已退出面板\${C_RESET}"; exit 0 ;;
         *) echo -e "  \${C_RED}无效选项，请重新输入\${C_RESET}" ;;
@@ -548,6 +582,7 @@ EXISTING_CRON=$(crontab -l 2>/dev/null || true)
 
 CRON_TREND='59 23 * * * MAIN_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF=$(ip route 2>/dev/null | grep default | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF="eth0"; echo "$(date +%Y-%m-%d) $(vnstat -m -i "$MAIN_IF" | awk '"'"'/total/{print $NF}'"'"')" >> /root/traffic_history.log && tail -30 /root/traffic_history.log > /tmp/.tl && mv /tmp/.tl /root/traffic_history.log'
 CRON_RESET="0 0 * * * /root/traffic_reset_check.sh"
+CRON_SPIKE="*/10 * * * * /root/traffic_spike_check.sh >/dev/null 2>&1"
 
 EXISTING_CRON=$(echo "$EXISTING_CRON" | grep -v 'traffic_history\.log')
 
@@ -557,6 +592,9 @@ if ! echo "$EXISTING_CRON" | grep -qF 'traffic_history.log'; then
 fi
 if ! echo "$EXISTING_CRON" | grep -qF 'traffic_reset_check.sh'; then
     NEW_ENTRIES="${NEW_ENTRIES}${CRON_RESET}\n"
+fi
+if ! echo "$EXISTING_CRON" | grep -qF 'traffic_spike_check.sh'; then
+    NEW_ENTRIES="${NEW_ENTRIES}${CRON_SPIKE}\n"
 fi
 
 if [ -n "$NEW_ENTRIES" ]; then
@@ -780,6 +818,53 @@ TESTEOF
 else
     echo -e "  -> Telegram 推送已跳过"
 fi
+
+echo ""
+printf "  请输入短时激增告警阈值(GB/10分钟) [默认: 5，输入 0 禁用此功能]: "
+read SPIKE_LIMIT
+SPIKE_LIMIT="${SPIKE_LIMIT:-5}"
+if [ "$SPIKE_LIMIT" = "0" ]; then
+    echo -e "  -> 短时激增告警: ${C_RED}已禁用${C_RESET}"
+else
+    echo -e "  -> 短时激增告警阈值: ${C_YELLOW}${SPIKE_LIMIT}GB/10分钟${C_RESET}"
+fi
+
+cat << SPIKEEOF > /root/traffic_spike_check.sh
+#!/bin/bash
+SPIKE_LIMIT=${SPIKE_LIMIT}
+TG_TOKEN="${TG_TOKEN:-}"
+TG_CHAT="${TG_CHAT:-}"
+[ "\$SPIKE_LIMIT" = "0" ] && exit 0
+[ -z "\$TG_TOKEN" ] || [ -z "\$TG_CHAT" ] && exit 0
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+STAT_PATH="/sys/class/net/\$MAIN_INTERFACE/statistics"
+[ -d "\$STAT_PATH" ] || exit 0
+RX=\$(cat "\$STAT_PATH/rx_bytes" 2>/dev/null || echo 0)
+TX=\$(cat "\$STAT_PATH/tx_bytes" 2>/dev/null || echo 0)
+NOW_TOTAL=\$(( RX + TX ))
+LAST_FILE="/tmp/.lin_last_traffic"
+if [ -f "\$LAST_FILE" ]; then
+    LAST_TOTAL=\$(cat "\$LAST_FILE")
+    if [ "\$NOW_TOTAL" -gt "\$LAST_TOTAL" ] 2>/dev/null; then
+        DELTA_BYTES=\$(( NOW_TOTAL - LAST_TOTAL ))
+        SPIKE_BYTES=\$(awk "BEGIN{printf \"%.0f\", \$SPIKE_LIMIT * 1073741824}")
+        if [ "\$DELTA_BYTES" -gt "\$SPIKE_BYTES" ] 2>/dev/null; then
+            DELTA_GB=\$(awk "BEGIN{printf \"%.2f\", \$DELTA_BYTES / 1073741824}")
+            MSG="🚨 流量激增告警
+━━━━━━━━━━━━━━━━
+⚠️ 网卡: \${MAIN_INTERFACE}
+📈 10分钟内激增: \${DELTA_GB} GB
+🔔 告警阈值: \${SPIKE_LIMIT} GB
+━━━━━━━━━━━━━━━━"
+            curl -s -X POST "https://api.telegram.org/bot\${TG_TOKEN}/sendMessage" -d chat_id="\${TG_CHAT}" -d text="\${MSG}" >/dev/null 2>&1
+        fi
+    fi
+fi
+echo "\$NOW_TOTAL" > "\$LAST_FILE"
+SPIKEEOF
+chmod +x /root/traffic_spike_check.sh
 
 echo -e "${C_GREEN}[7/7] 🔐 正在配置登录自启与快捷命令...${C_RESET}"
 

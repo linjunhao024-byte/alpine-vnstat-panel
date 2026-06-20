@@ -268,12 +268,12 @@ if [ -n "\$CDOWN" ]; then
 fi
 echo -e "\${C_CYAN}╚════════════════════════════════════════════════════════════════╝\${C_RESET}"
 echo ""
-VSTAT_M=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
+VSTAT_M=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null | sed -e "s/\$MAIN_INTERFACE/Interface/g" -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
 printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_M"
 
 echo ""
 echo -e "\${C_GREEN}  📅 Daily Details\${C_RESET}"
-VSTAT_D=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | sed -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
+VSTAT_D=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | sed -e "s/\$MAIN_INTERFACE/Interface/g" -e 's/-/─/g' -e 's/+/┼/g' -e 's/|/│/g')
 printf "\${C_CYAN}%s\n\${C_RESET}" "\$VSTAT_D"
 
 echo ""
@@ -394,6 +394,32 @@ do_manual_push() {
     echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
 }
 
+do_modify_spike() {
+    echo ""
+    echo -e "\${C_GREEN}  ⚡ Modify Spike Alert Threshold\${C_RESET}"
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+    if [ ! -f /root/traffic_spike_check.sh ]; then
+        echo -e "  \${C_RED}❌ Spike alert script not found\${C_RESET}"
+        echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+        return
+    fi
+    CUR=\$(grep '^SPIKE_LIMIT=' /root/traffic_spike_check.sh | head -1 | cut -d= -f2)
+    echo -e "  \${C_WHITE}Current threshold: \${C_YELLOW}\${CUR} GB/10mins\${C_RESET}"
+    printf "  Enter new threshold (GB/10mins) [0 to disable]: "
+    read NEW_SPIKE
+    if [ -z "\$NEW_SPIKE" ]; then
+        echo -e "  \${C_YELLOW}Cancelled\${C_RESET}"
+    else
+        sed -i "s/^SPIKE_LIMIT=.*/SPIKE_LIMIT=\${NEW_SPIKE}/" /root/traffic_spike_check.sh
+        if [ "\$NEW_SPIKE" = "0" ]; then
+            echo -e "  \${C_RED}Spike alert disabled\${C_RESET}"
+        else
+            echo -e "  \${C_GREEN}✅ Threshold set to: \${C_YELLOW}\${NEW_SPIKE} GB/10mins\${C_RESET}"
+        fi
+    fi
+    echo -e "\${C_CYAN}  ──────────────────────────────────────────────────────────\${C_RESET}"
+}
+
 do_uninstall() {
     echo ""
     echo -e "\${C_RED}  ⚠️  Uninstall LIN-Panel and all files\${C_RESET}"
@@ -455,6 +481,7 @@ show_menu() {
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[3] Connections     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[4] Speed     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[5] Push Now     \${C_CYAN}│\${C_RESET}"
+    echo -e "\${C_CYAN}  │\${C_RESET}  \${C_WHITE}[7] Spike Alert   \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[6] Uninstall     \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  │\${C_RESET}  \${C_RED}[0] Exit         \${C_CYAN}│\${C_RESET}"
     echo -e "\${C_CYAN}  └──────────────────┘\${C_RESET}"
@@ -472,6 +499,7 @@ while true; do
         3) show_conn ;;
         4) show_speed ;;
         5) do_manual_push ;;
+        7) do_modify_spike ;;
         6) do_uninstall ;;
         0|"") echo -e "\n  \${C_GREEN}👋 Panel exited\${C_RESET}"; exit 0 ;;
         *) echo -e "  \${C_RED}Invalid option\${C_RESET}" ;;
@@ -532,6 +560,7 @@ EXISTING_CRON=$(crontab -l 2>/dev/null || true)
 
 CRON_TREND='59 23 * * * MAIN_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF=$(ip route 2>/dev/null | grep default | awk '"'"'{print $5; exit}'"'"'); [ -z "$MAIN_IF" ] && MAIN_IF="eth0"; echo "$(date +%Y-%m-%d) $(vnstat -m -i "$MAIN_IF" | awk '"'"'/total/{print $NF}'"'"')" >> /root/traffic_history.log && tail -30 /root/traffic_history.log > /tmp/.tl && mv /tmp/.tl /root/traffic_history.log'
 CRON_RESET="0 0 * * * /root/traffic_reset_check.sh"
+CRON_SPIKE="*/10 * * * * /root/traffic_spike_check.sh >/dev/null 2>&1"
 
 EXISTING_CRON=$(echo "$EXISTING_CRON" | grep -v 'traffic_history\.log')
 
@@ -541,6 +570,9 @@ if ! echo "$EXISTING_CRON" | grep -qF 'traffic_history.log'; then
 fi
 if ! echo "$EXISTING_CRON" | grep -qF 'traffic_reset_check.sh'; then
     NEW_ENTRIES="${NEW_ENTRIES}${CRON_RESET}\n"
+fi
+if ! echo "$EXISTING_CRON" | grep -qF 'traffic_spike_check.sh'; then
+    NEW_ENTRIES="${NEW_ENTRIES}${CRON_SPIKE}\n"
 fi
 
 if [ -n "$NEW_ENTRIES" ]; then
@@ -764,6 +796,53 @@ TESTEOF
 else
     echo -e "  -> Telegram skipped"
 fi
+
+echo ""
+printf "  Enter short-term traffic spike alert threshold (GB/10 mins) [default: 5, 0 to disable]: "
+read SPIKE_LIMIT
+SPIKE_LIMIT="${SPIKE_LIMIT:-5}"
+if [ "$SPIKE_LIMIT" = "0" ]; then
+    echo -e "  -> Short-term spike alert: ${C_RED}Disabled${C_RESET}"
+else
+    echo -e "  -> Spike alert threshold: ${C_YELLOW}${SPIKE_LIMIT}GB/10mins${C_RESET}"
+fi
+
+cat << SPIKEEOF > /root/traffic_spike_check.sh
+#!/bin/bash
+SPIKE_LIMIT=${SPIKE_LIMIT}
+TG_TOKEN="${TG_TOKEN:-}"
+TG_CHAT="${TG_CHAT:-}"
+[ "\$SPIKE_LIMIT" = "0" ] && exit 0
+[ -z "\$TG_TOKEN" ] || [ -z "\$TG_CHAT" ] && exit 0
+MAIN_INTERFACE=\$(ip route get 8.8.8.8 2>/dev/null | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE=\$(ip route 2>/dev/null | grep default | awk '{print \$5; exit}')
+[ -z "\$MAIN_INTERFACE" ] && MAIN_INTERFACE="eth0"
+STAT_PATH="/sys/class/net/\$MAIN_INTERFACE/statistics"
+[ -d "\$STAT_PATH" ] || exit 0
+RX=\$(cat "\$STAT_PATH/rx_bytes" 2>/dev/null || echo 0)
+TX=\$(cat "\$STAT_PATH/tx_bytes" 2>/dev/null || echo 0)
+NOW_TOTAL=\$(( RX + TX ))
+LAST_FILE="/tmp/.lin_last_traffic"
+if [ -f "\$LAST_FILE" ]; then
+    LAST_TOTAL=\$(cat "\$LAST_FILE")
+    if [ "\$NOW_TOTAL" -gt "\$LAST_TOTAL" ] 2>/dev/null; then
+        DELTA_BYTES=\$(( NOW_TOTAL - LAST_TOTAL ))
+        SPIKE_BYTES=\$(awk "BEGIN{printf \"%.0f\", \$SPIKE_LIMIT * 1073741824}")
+        if [ "\$DELTA_BYTES" -gt "\$SPIKE_BYTES" ] 2>/dev/null; then
+            DELTA_GB=\$(awk "BEGIN{printf \"%.2f\", \$DELTA_BYTES / 1073741824}")
+            MSG="🚨 Traffic Spike Alert
+━━━━━━━━━━━━━━━━
+⚠️ Interface: \${MAIN_INTERFACE}
+📈 Spike in 10 mins: \${DELTA_GB} GB
+🔔 Threshold: \${SPIKE_LIMIT} GB
+━━━━━━━━━━━━━━━━"
+            curl -s -X POST "https://api.telegram.org/bot\${TG_TOKEN}/sendMessage" -d chat_id="\${TG_CHAT}" -d text="\${MSG}" >/dev/null 2>&1
+        fi
+    fi
+fi
+echo "\$NOW_TOTAL" > "\$LAST_FILE"
+SPIKEEOF
+chmod +x /root/traffic_spike_check.sh
 
 echo -e "${C_GREEN}[7/7] 🔐 Login config...${C_RESET}"
 
