@@ -297,30 +297,30 @@ echo -e "\${C_CYAN}╔═══════════════════�
 echo -e "\${C_CYAN}║\${C_RESET}\${C_YELLOW}                      ⚙️  系统状态                              \${C_RESET}\${C_CYAN}║\${C_RESET}"
 echo -e "\${C_CYAN}╠════════════════════════════════════════════════════════════════╣\${C_RESET}"
 
-VNSTAT_STATUS="Stopped"
+VNSTAT_STATUS="已停止"
 VNSTAT_CLR="\${C_RED}"
 if systemctl is-active --quiet vnstat 2>/dev/null || rc-service vnstatd status 2>/dev/null | grep -q "started"; then
-    VNSTAT_STATUS="Running"
+    VNSTAT_STATUS="运行中"
     VNSTAT_CLR="\${C_GREEN}"
 fi
 
-CRON_STATUS="Inactive"
+CRON_STATUS="未激活"
 CRON_CLR="\${C_RED}"
 if systemctl is-active --quiet cron 2>/dev/null || systemctl is-active --quiet crond 2>/dev/null || rc-service crond status 2>/dev/null | grep -q "started"; then
-    CRON_STATUS="Active"
+    CRON_STATUS="已激活"
     CRON_CLR="\${C_GREEN}"
 fi
 
-TG_STATUS="Disabled"
+TG_STATUS="未启用"
 TG_CLR="\${C_WHITE}"
 if [ -f /root/traffic_check.sh ]; then
-    TG_STATUS="Enabled"
+    TG_STATUS="已启用"
     TG_CLR="\${C_GREEN}"
 fi
 
-echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}vnstat state:\${C_RESET}     \${VNSTAT_CLR}\${VNSTAT_STATUS}\${C_RESET}\${C_CYAN}║\${C_RESET}"
-echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}Cron scheduler:\${C_RESET}   \${CRON_CLR}\${CRON_STATUS}\${C_RESET}\${C_CYAN}║\${C_RESET}"
-echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}Telegram Push:\${C_RESET}    \${TG_CLR}\${TG_STATUS}\${C_RESET}\${C_CYAN}║\${C_RESET}"
+echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}vnstat 状态:\${C_RESET}       \${VNSTAT_CLR}\${VNSTAT_STATUS}\${C_RESET}\${C_CYAN}                        ║\${C_RESET}"
+echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}定时任务:\${C_RESET}          \${CRON_CLR}\${CRON_STATUS}\${C_RESET}\${C_CYAN}                          ║\${C_RESET}"
+echo -e "\${C_CYAN}║\${C_RESET} \${C_WHITE}Telegram 推送:\${C_RESET}     \${TG_CLR}\${TG_STATUS}\${C_RESET}\${C_CYAN}                        ║\${C_RESET}"
 echo -e "\${C_CYAN}╚════════════════════════════════════════════════════════════════╝\${C_RESET}"
 
 show_trend() {
