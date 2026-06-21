@@ -270,13 +270,7 @@ echo -e "\${C_CYAN}╚═══════════════════�
 echo ""
 VSTAT_M=\$(vnstat -m -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
     -e "s/\$MAIN_INTERFACE/网卡/g" \\
-    -e 's/rx/入站(RX)/g' \\
-    -e 's/tx/出站(TX)/g' \\
-    -e 's/total/合计(Total)/g' \\
-    -e 's/estimated/预计/g' \\
-    -e 's/avg. rate/平均流速/g' \\
     -e 's/monthly/按月统计/g' \\
-    -e 's/month/月份/g' \\
     -e 's/-/─/g' \\
     -e 's/+/┼/g' \\
     -e 's/|/│/g')
@@ -286,13 +280,7 @@ echo ""
 echo -e "\${C_GREEN}  📅 每日流量明细\${C_RESET}"
 VSTAT_D=\$(vnstat -d -i "\$MAIN_INTERFACE" 2>/dev/null | sed \\
     -e "s/\$MAIN_INTERFACE/网卡/g" \\
-    -e 's/rx/入站(RX)/g' \\
-    -e 's/tx/出站(TX)/g' \\
-    -e 's/total/合计(Total)/g' \\
-    -e 's/estimated/预计/g' \\
-    -e 's/avg. rate/平均流速/g' \\
     -e 's/daily/按日统计/g' \\
-    -e 's/day/日期/g' \\
     -e 's/-/─/g' \\
     -e 's/+/┼/g' \\
     -e 's/|/│/g')
