@@ -6,7 +6,7 @@
 
 # 📊 LIN-Panel
 
-**Minimalist Traffic Monitor Pseudo-Panel · v1.0.5**
+**Minimalist Traffic Monitor Pseudo-Panel · v1.1.0**
 
 > No ports · No daemons · No web frameworks · Everything runs inside SSH
 
@@ -51,6 +51,7 @@ You have a VPS with a monthly traffic cap. Your biggest fear: **silently exceedi
 | 🔐 **Billing Modes** | Bidirectional / Inbound / Outbound · Choose at install |
 | 🌐 **Timezone** | 9 popular timezones · CN/HK/JP/SG/US/UK/EU/UTC |
 | 📱 **Telegram** | Traffic reports · Daily/weekly/monthly · Custom push time · Test message · Manual push |
+| 🚨 **Spike Alert** | 10-min traffic delta check · Telegram alert on spike · Modify threshold in panel · Disable option |
 | ⌨️ **Interactive** | Custom command · Numbered menu · One-click uninstall · Idempotent |
 | 🎨 **TUI Interface** | htop-style solid background header · System status indicators · Unicode box drawing |
 | ⚡ **System Probe** | Uptime · Load average · vnstat/Cron/Telegram status detection |
@@ -132,6 +133,7 @@ Fully interactive, press Enter for defaults:
   ④ Login auto-start  [Y/n]
   ⑤ Command name      [default: lin-panel]
   ⑥ Traffic baseline  [already used, optional]
+  ⑦ Spike threshold   [default: 5GB/10mins, 0 to disable]
 
 └───────────────────────────────────────┘
 
@@ -172,7 +174,8 @@ lin-panel              # or your custom name
   │  [3] Connections  │  ← Connection status
   │  [4] Speed Test   │  ← Measure speed
   │  [5] Push Now     │  ← Telegram push
-  │  [6] Uninstall    │  ← Remove all files
+  │  [6] Spike Alert  │  ← Modify/disable threshold
+  │  [7] Uninstall    │  ← Remove all files
   │  [0] Exit         │  ← Back to shell
   └──────────────────┘
 ```
@@ -183,7 +186,7 @@ lin-panel              # or your custom name
 
 ```
 ██████████████████████████████████████████████████████████████████████████
-  📊 LIN-PANEL v1.0.5                            UP: 24 Days | Load: 0.05
+  📊 LIN-PANEL v1.1.0                            UP: 24 Days | Load: 0.05
 ██████████████████████████████████████████████████████████████████████████
 
 ╔════════════════════════════════════════════════════════════════╗
@@ -208,7 +211,8 @@ lin-panel              # or your custom name
 │  [3] Connections  │
 │  [4] Speed        │
 │  [5] Push Now     │
-│  [6] Uninstall    │
+│  [6] Spike Alert  │
+│  [7] Uninstall    │
 │  [0] Exit         │
 └──────────────────┘
 ```
@@ -222,6 +226,7 @@ lin-panel              # or your custom name
 ├── lin-panel.sh              # Panel script
 ├── traffic_reset_check.sh    # Smart reset (month-end fallback)
 ├── traffic_check.sh          # Telegram push (optional)
+├── traffic_spike_check.sh    # Traffic spike alert (every 10 mins)
 └── traffic_history.log       # Trend log (auto-trim 30 days)
 
 /usr/local/bin/
@@ -231,6 +236,7 @@ lin-panel              # or your custom name
 └── LIN-PANEL-AUTO-START      # SSH login auto-start (interactive check + SCP protection)
 
 Crontab:
+├── */10 * * * *       Traffic spike detection (optional)
 ├── 59 23 * * *        Daily record + trim
 ├── 0 0 * * *          Daily reset check
 └── 0 9/12 * * *       Telegram push (optional)
@@ -291,10 +297,10 @@ Re-run the installer. All parameters reconfigure without affecting existing data
 <details>
 <summary><strong>Q: How to uninstall?</strong></summary>
 
-Use menu `[6] Uninstall`, or manually:
+Use menu `[7] Uninstall`, or manually:
 
 ```bash
-rm -f /root/lin-panel.sh /root/traffic_reset_check.sh /root/traffic_check.sh /root/traffic_history.log
+rm -f /root/lin-panel.sh /root/traffic_reset_check.sh /root/traffic_check.sh /root/traffic_spike_check.sh /root/traffic_history.log
 rm -f /usr/local/bin/lin-panel      # or your custom command name
 sed -i '/LIN-PANEL-AUTO-START/,/END LIN-PANEL-AUTO-START/d' /root/.bashrc
 crontab -e  # remove related entries

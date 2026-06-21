@@ -15,7 +15,7 @@ echo '  / /  / / /    /  ______ / /_/ / __ `/ __ \/ _ \/ /'
 echo ' / /__/ / / /|  / /_____// ____/ /_/ / / / /  __/ /'
 echo '/____/___/_/ |_/        /_/    \__,_/_/ /_/\___/_/'
 echo -e "${C_RESET}"
-echo -e "${C_YELLOW}           Minimalist Traffic Panel · v1.0.5${C_RESET}"
+echo -e "${C_YELLOW}           Minimalist Traffic Panel · v1.1.0${C_RESET}"
 echo ""
 echo -e "${C_CYAN}╭──────────────────────────────────────────────────────────────╮${C_RESET}"
 echo -e "${C_YELLOW}│              Welcome to LIN-PANEL Installer                       │${C_RESET}"
@@ -247,7 +247,7 @@ clear
 COLS=\$(tput cols 2>/dev/null || echo 80)
 UPTIME_STR=\$(uptime -p 2>/dev/null | sed 's/up //' || uptime 2>/dev/null | awk -F',' '{print \$1}' | awk '{\$1=""; print \$0}' | sed 's/^ //')
 LOAD_STR=\$(awk '{printf "%.2f", \$1}' /proc/loadavg 2>/dev/null || uptime 2>/dev/null | awk -F'load average:' '{print \$2}' | awk -F',' '{gsub(/^ /,"",\$1); print \$1}')
-LEFT=" 📊 LIN-PANEL v1.0.5 "
+LEFT=" 📊 LIN-PANEL v1.1.0 "
 RIGHT=" UP: \${UPTIME_STR} | Load: \${LOAD_STR} "
 LEFT_LEN=\${#LEFT}
 RIGHT_LEN=\${#RIGHT}
